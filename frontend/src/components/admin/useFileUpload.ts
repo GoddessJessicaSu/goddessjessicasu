@@ -78,6 +78,8 @@ export function useFileUpload() {
     const queue = [...partUrls];
     let partsCompleted = 0;
 
+    const partBytesLoaded: Record<number, number> = {};
+
     const uploadPart = async (part: { partNumber: number; url: string }) => {
       if (cancelledRef.current) return;
       const start = (part.partNumber - 1) * chunkSize;
@@ -87,14 +89,18 @@ export function useFileUpload() {
       const resp = await axios.put(part.url, chunk, {
         headers: { "Content-Type": "application/octet-stream" },
         signal: controller.signal,
+        onUploadProgress: (e) => {
+          partBytesLoaded[part.partNumber] = e.loaded;
+          const totalLoaded = Object.values(partBytesLoaded).reduce((a, b) => a + b, 0);
+          updateItem(itemIndex, {
+            progress: Math.round((totalLoaded / file.size) * 100),
+          });
+        },
       });
 
       const etag = resp.headers["etag"] || resp.headers["ETag"] || "";
       completedParts.push({ partNumber: part.partNumber, etag: etag.replace(/"/g, "") });
       partsCompleted++;
-      updateItem(itemIndex, {
-        progress: Math.round((partsCompleted / totalParts) * 100),
-      });
     };
 
     // Process in batches of 3
