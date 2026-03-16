@@ -42,7 +42,7 @@ webhookRoutes.post('/nowpayments', async (req: Request, res: Response) => {
     }
 
     const transaction = await prisma.transaction.findUnique({
-      where: { nowpaymentsId: String(payment_id) },
+      where: { id: String(order_id) },
       include: { tier: true },
     });
 
