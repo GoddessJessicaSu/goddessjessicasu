@@ -249,22 +249,18 @@ adminRoutes.delete('/tiers/:id', asyncHandler(async (req, res) => {
 }));
 
 adminRoutes.put('/config', asyncHandler(async (req, res) => {
-  const { rateUsdPerToken, rateBtcPerToken, rateEthPerToken, bioText, customVideoText } = req.body;
+  const { rateUsdPerToken, bioText, customVideoText } = req.body;
 
   const siteConfig = await prisma.siteConfig.upsert({
     where: { id: 1 },
     create: {
       id: 1,
       ...(rateUsdPerToken !== undefined && { rateUsdPerToken }),
-      ...(rateBtcPerToken !== undefined && { rateBtcPerToken }),
-      ...(rateEthPerToken !== undefined && { rateEthPerToken }),
       ...(bioText !== undefined && { bioText }),
       ...(customVideoText !== undefined && { customVideoText }),
     },
     update: {
       ...(rateUsdPerToken !== undefined && { rateUsdPerToken }),
-      ...(rateBtcPerToken !== undefined && { rateBtcPerToken }),
-      ...(rateEthPerToken !== undefined && { rateEthPerToken }),
       ...(bioText !== undefined && { bioText }),
       ...(customVideoText !== undefined && { customVideoText }),
     },

@@ -4,7 +4,6 @@ import jwt from 'jsonwebtoken';
 import { prisma } from '../prisma';
 import { config } from '../config';
 import { sendMagicLinkEmail } from '../services/mail.service';
-import { deriveAllAddresses } from '../services/crypto.service';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
 import { asyncHandler } from '../middleware/async-handler';
 
@@ -87,28 +86,11 @@ authRoutes.get('/verify', asyncHandler(async (req, res) => {
   let user = await prisma.user.findUnique({ where: { email: magicLink.email } });
 
   if (!user) {
-    // New user — derive crypto addresses at registration time
-    // We need a temporary ID for derivation. Use a transaction to get the autoincrement ID.
-    user = await prisma.$transaction(async (tx) => {
-      // Create with placeholder addresses first to get the ID
-      const created = await tx.user.create({
-        data: {
-          email: magicLink.email,
-          isAdmin: magicLink.email === config.adminEmail,
-          btcAddress: 'pending',
-          ethAddress: 'pending',
-          tronAddress: 'pending',
-        },
-      });
-
-      // Derive real addresses using the user ID
-      const addresses = deriveAllAddresses(created.id);
-
-      // Update with real addresses
-      return tx.user.update({
-        where: { id: created.id },
-        data: addresses,
-      });
+    user = await prisma.user.create({
+      data: {
+        email: magicLink.email,
+        isAdmin: magicLink.email === config.adminEmail,
+      },
     });
   }
 

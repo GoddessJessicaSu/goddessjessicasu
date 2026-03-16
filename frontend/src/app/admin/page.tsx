@@ -135,14 +135,6 @@ function ConfigTab() {
           <input type="number" step="0.001" value={cfg.rateUsdPerToken || ""} onChange={(e) => setCfg({ ...cfg, rateUsdPerToken: parseFloat(e.target.value) })} className="px-3 py-2 bg-black border border-white/10 rounded text-white w-48" />
         </div>
         <div>
-          <label className="text-white/50 text-sm block mb-1">BTC per Token (optional override)</label>
-          <input type="number" step="0.00000001" value={cfg.rateBtcPerToken || ""} onChange={(e) => setCfg({ ...cfg, rateBtcPerToken: e.target.value ? parseFloat(e.target.value) : null })} className="px-3 py-2 bg-black border border-white/10 rounded text-white w-48" />
-        </div>
-        <div>
-          <label className="text-white/50 text-sm block mb-1">ETH per Token (optional override)</label>
-          <input type="number" step="0.00000001" value={cfg.rateEthPerToken || ""} onChange={(e) => setCfg({ ...cfg, rateEthPerToken: e.target.value ? parseFloat(e.target.value) : null })} className="px-3 py-2 bg-black border border-white/10 rounded text-white w-48" />
-        </div>
-        <div>
           <label className="text-white/50 text-sm block mb-1">Bio Text</label>
           <textarea value={cfg.bioText || ""} onChange={(e) => setCfg({ ...cfg, bioText: e.target.value })} className="w-full px-3 py-2 bg-black border border-white/10 rounded text-white" rows={4} />
         </div>

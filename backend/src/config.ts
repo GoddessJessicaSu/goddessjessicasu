@@ -8,10 +8,6 @@ function optional(name: string, fallback: string): string {
   return process.env[name] || fallback;
 }
 
-const cryptoNetwork = optional("CRYPTO_NETWORK", "mainnet") as
-  | "mainnet"
-  | "testnet";
-
 export const config = {
   nodeEnv: optional("NODE_ENV", "development"),
   port: parseInt(optional("PORT", "4000"), 10),
@@ -40,46 +36,11 @@ export const config = {
     publicUrl: process.env.MINIO_PUBLIC_URL || "",
   },
 
-  crypto: {
-    network: cryptoNetwork,
-    btcXpub: required("BTC_XPUB"),
-    ethXpub: required("ETH_XPUB"),
-    tronXpub: required("TRON_XPUB"),
-    pollIntervalMs: parseInt(optional("CRYPTO_POLL_INTERVAL_MS", "60000"), 10),
-    tokenRatePerUsd: parseFloat(optional("TOKEN_RATE_PER_USD", "100")),
-    usdtTrc20Contract: optional(
-      "USDT_TRC20_CONTRACT",
-      cryptoNetwork === "testnet"
-        ? "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf"
-        : "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
-    ),
-  },
-
-  blockchain: {
-    btcApiUrl: optional(
-      "BTC_API_URL",
-      cryptoNetwork === "testnet"
-        ? "https://blockstream.info/signet/api"
-        : "https://blockstream.info/api",
-    ),
-    ethRpcUrl: optional(
-      "ETH_RPC_URL",
-      cryptoNetwork === "testnet"
-        ? "https://sepolia.infura.io/v3/YOUR_KEY"
-        : "https://mainnet.infura.io/v3/YOUR_KEY",
-    ),
-    tronApiUrl: optional(
-      "TRON_API_URL",
-      cryptoNetwork === "testnet"
-        ? "https://nile.trongrid.io"
-        : "https://api.trongrid.io",
-    ),
-    ethExplorerApiUrl: optional(
-      "ETH_EXPLORER_API_URL",
-      cryptoNetwork === "testnet"
-        ? "https://eth-sepolia.blockscout.com/api"
-        : "https://eth.blockscout.com/api",
-    ),
+  nowpayments: {
+    apiKey: required("NOWPAYMENTS_API_KEY"),
+    ipnSecret: required("NOWPAYMENTS_IPN_SECRET"),
+    callbackUrl: optional("NOWPAYMENTS_CALLBACK_URL", ""),
+    apiBaseUrl: "https://api.nowpayments.io/v1",
   },
 
   logLevel: optional("LOG_LEVEL", "info"),

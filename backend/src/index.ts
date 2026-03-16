@@ -10,13 +10,17 @@ import { depositRoutes } from './routes/deposit.routes';
 import { purchaseRoutes } from './routes/purchase.routes';
 import { adminRoutes } from './routes/admin.routes';
 import { galleryRoutes } from './routes/gallery.routes';
-import { startCryptoListener, stopCryptoListener } from './services/crypto-listener.service';
+import { webhookRoutes } from './routes/webhook.routes';
 import { ensureBuckets } from './services/minio.service';
 
 const app = express();
 
 app.use(helmet());
 app.use(cors());
+
+// Webhook route needs raw body for HMAC verification — mount before express.json()
+app.use('/api/webhooks', express.raw({ type: 'application/json' }), webhookRoutes);
+
 app.use(express.json());
 app.use(requestLogger);
 
@@ -36,12 +40,10 @@ ensureBuckets()
   .then(() => {
     const server = app.listen(config.port, () => {
       logger.info({ port: config.port }, 'Backend running');
-      startCryptoListener();
     });
 
     function shutdown() {
       logger.info('Shutting down...');
-      stopCryptoListener();
       server.close(() => process.exit(0));
     }
 

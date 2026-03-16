@@ -11,12 +11,6 @@ interface UserInfo {
   tokenBalance: number;
 }
 
-interface DepositAddresses {
-  BTC: string;
-  ETH: string;
-  USDT_TRC20: string;
-}
-
 interface VaultItem {
   id: string;
   title: string;
@@ -29,23 +23,15 @@ interface TierInfo {
   id: string;
   priceUsd: number;
   tokenAmount: number;
-  cryptoAmounts: {
-    BTC: number | null;
-    ETH: number | null;
-    USDT_TRC20: number;
-  };
 }
 
 export default function Dashboard() {
   const [user, setUser] = useState<UserInfo | null>(null);
-  const [addresses, setAddresses] = useState<DepositAddresses | null>(null);
   const [vault, setVault] = useState<VaultItem[]>([]);
   const [tiers, setTiers] = useState<TierInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedTier, setSelectedTier] = useState<TierInfo | null>(null);
-  const [selectedCrypto, setSelectedCrypto] = useState<string>("BTC");
-  const [depositStatus, setDepositStatus] = useState<string | null>(null);
   const [depositPending, setDepositPending] = useState(false);
 
   useEffect(() => {
@@ -57,13 +43,11 @@ export default function Dashboard() {
 
     Promise.all([
       api.get("/auth/me"),
-      api.get("/deposit/addresses"),
       api.get("/purchase/vault"),
       api.get("/deposit/tiers"),
     ])
-      .then(([userRes, addrRes, vaultRes, tiersRes]) => {
+      .then(([userRes, vaultRes, tiersRes]) => {
         setUser(userRes.data.user);
-        setAddresses(addrRes.data);
         setVault(vaultRes.data.items);
         setTiers(tiersRes.data.tiers);
       })
@@ -82,15 +66,12 @@ export default function Dashboard() {
     setDepositPending(true);
     try {
       const res = await api.post("/deposit/initiate", {
-        currency: selectedCrypto,
         tierId: selectedTier.id,
       });
-      const cryptoAmount = selectedTier.cryptoAmounts[selectedCrypto as keyof TierInfo["cryptoAmounts"]];
-      setDepositStatus(
-        `Deposit initiated! Send exactly ${cryptoAmount} ${selectedCrypto} to the address above. You'll receive ${selectedTier.tokenAmount.toLocaleString()} ${brand.tokenName} once confirmed.`
-      );
+      // Redirect to NOWPayments hosted invoice page
+      window.location.href = res.data.invoiceUrl;
     } catch (err: any) {
-      setDepositStatus(err.response?.data?.error || "Failed to initiate deposit");
+      setError(err.response?.data?.error || "Failed to initiate payment");
       setDepositPending(false);
     }
   };
@@ -98,16 +79,6 @@ export default function Dashboard() {
   if (loading) return <div className="p-12 text-white/50">Loading...</div>;
   if (error) return <div className="p-12 text-red-400">{error}</div>;
   if (!user) return null;
-
-  const cryptoOptions = [
-    { key: "BTC", label: "Bitcoin (BTC)" },
-    { key: "ETH", label: "Ethereum (ETH)" },
-    // { key: "USDT_TRC20", label: "USDT (TRC-20)" }, // TODO: re-enable when TRON is ready
-  ];
-
-  const selectedCryptoAmount = selectedTier
-    ? selectedTier.cryptoAmounts[selectedCrypto as keyof TierInfo["cryptoAmounts"]]
-    : null;
 
   return (
     <motion.div
@@ -131,7 +102,7 @@ export default function Dashboard() {
       <div className="bg-white/5 rounded-lg p-6 border border-white/10 mb-8">
         <h2 className="text-xl font-semibold mb-4">Buy {brand.tokenName}</h2>
 
-        {/* Step 1: Select a Package */}
+        {/* Select a Package */}
         <div className="mb-6">
           <div className="text-white/50 text-sm mb-2">Select a Package</div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -153,64 +124,36 @@ export default function Dashboard() {
           {tiers.length === 0 && <p className="text-white/40 text-sm">No packages available.</p>}
         </div>
 
-        {/* Step 2: Select Crypto */}
+        {/* Buy Button */}
         {selectedTier && (
-          <div className="mb-6">
-            <div className="text-white/50 text-sm mb-2">Pay With</div>
-            <div className="grid grid-cols-3 gap-2 mb-4">
-              {cryptoOptions.map((opt) => (
-                <button
-                  key={opt.key}
-                  onClick={() => setSelectedCrypto(opt.key)}
-                  className={`px-3 py-2 rounded text-sm font-medium transition ${
-                    selectedCrypto === opt.key
-                      ? "bg-primary text-black"
-                      : "bg-white/10 text-white/70 hover:bg-white/20"
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-
-            {/* Amount + Address */}
-            {selectedCryptoAmount != null && (
-              <div className="bg-black/50 rounded-lg p-4 border border-white/10 space-y-3">
-                <div>
-                  <div className="text-white/50 text-sm">Send exactly:</div>
-                  <div className="text-2xl font-bold text-primary font-mono">
-                    {selectedCryptoAmount} {selectedCrypto === "USDT_TRC20" ? "USDT" : selectedCrypto}
-                  </div>
+          <div className="bg-black/50 rounded-lg p-4 border border-white/10 space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-white/50 text-sm">You&apos;ll receive:</div>
+                <div className="text-2xl font-bold text-primary">
+                  {selectedTier.tokenAmount.toLocaleString()} {brand.tokenName}
                 </div>
-                {addresses && (
-                  <div>
-                    <div className="text-white/50 text-sm">To:</div>
-                    <div className="bg-black border border-white/10 rounded p-3 font-mono text-sm break-all select-all">
-                      {addresses[selectedCrypto as keyof DepositAddresses]}
-                    </div>
-                  </div>
-                )}
-                <button
-                  onClick={initiateDeposit}
-                  disabled={depositPending}
-                  className={`w-full px-6 py-3 font-semibold rounded transition ${
-                    depositPending
-                      ? "bg-white/20 text-white/40 cursor-not-allowed"
-                      : "bg-primary text-black hover:brightness-110"
-                  }`}
-                >
-                  {depositPending ? "Awaiting Confirmation..." : "I\u2019ve Sent the Payment"}
-                </button>
               </div>
-            )}
-            {selectedCryptoAmount == null && (
-              <div className="text-white/40 text-sm">Price unavailable for {selectedCrypto} right now.</div>
-            )}
+              <div className="text-right">
+                <div className="text-white/50 text-sm">Price:</div>
+                <div className="text-2xl font-bold">${selectedTier.priceUsd}</div>
+              </div>
+            </div>
+            <p className="text-white/40 text-sm">
+              You&apos;ll be redirected to our secure payment processor where you can pay with any cryptocurrency.
+            </p>
+            <button
+              onClick={initiateDeposit}
+              disabled={depositPending}
+              className={`w-full px-6 py-3 font-semibold rounded transition ${
+                depositPending
+                  ? "bg-white/20 text-white/40 cursor-not-allowed"
+                  : "bg-primary text-black hover:brightness-110"
+              }`}
+            >
+              {depositPending ? "Redirecting..." : "Pay with Crypto"}
+            </button>
           </div>
-        )}
-
-        {depositStatus && (
-          <div className="mt-3 p-3 bg-green-900/20 border border-green-800 rounded text-sm text-green-300">{depositStatus}</div>
         )}
       </div>
 

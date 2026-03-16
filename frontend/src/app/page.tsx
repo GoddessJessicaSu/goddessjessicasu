@@ -57,7 +57,7 @@ export default function Landing() {
         <div className="grid md:grid-cols-3 gap-8">
           {[
             { step: "1", title: "Sign In", desc: "Enter your email to receive a magic link. No passwords needed." },
-            { step: "2", title: "Deposit Crypto", desc: `Send BTC, ETH, or USDT to your personal wallet address. Get ${brand.tokenName} tokens instantly.` },
+            { step: "2", title: "Buy Tokens", desc: `Pay with any cryptocurrency via our secure payment processor. Get ${brand.tokenName} tokens instantly.` },
             { step: "3", title: "Unlock Content", desc: `Spend ${brand.tokenName} tokens to unlock exclusive videos from the gallery.` },
           ].map((item) => (
             <div key={item.step} className="text-center">

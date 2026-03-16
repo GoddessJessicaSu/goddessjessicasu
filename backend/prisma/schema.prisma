@@ -13,10 +13,6 @@ model User {
   isAdmin        Boolean       @default(false)
   tokenBalance   Float         @default(0)
 
-  btcAddress     String        @unique
-  ethAddress     String        @unique
-  tronAddress    String        @unique
-
   createdAt      DateTime      @default(now())
 
   magicLinks     MagicLink[]
@@ -36,12 +32,6 @@ model MagicLink {
   userId     Int?
 }
 
-enum Currency {
-  BTC
-  ETH
-  USDT_TRC20
-}
-
 enum TxStatus {
   PENDING
   CONFIRMED
@@ -49,24 +39,25 @@ enum TxStatus {
 }
 
 model Transaction {
-  id             String     @id @default(cuid())
-  userId         Int
-  user           User       @relation(fields: [userId], references: [id])
+  id              String     @id @default(cuid())
+  userId          Int
+  user            User       @relation(fields: [userId], references: [id])
 
-  currency       Currency
-  depositAddress String
-  amountCrypto   Float?
-  amountTokens   Float?
-  status         TxStatus   @default(PENDING)
-  txHash         String?
+  currency        String
+  depositAddress  String
+  amountCrypto    Float?
+  amountTokens    Float?
+  status          TxStatus   @default(PENDING)
+  txHash          String?
+  nowpaymentsId   String?    @unique
 
-  tierId         String?
-  tier           TokenTier? @relation(fields: [tierId], references: [id])
-  expectedTokens Float?
+  tierId          String?
+  tier            TokenTier? @relation(fields: [tierId], references: [id])
+  expectedTokens  Float?
 
-  createdAt      DateTime   @default(now())
-  confirmedAt    DateTime?
-  expiresAt      DateTime
+  createdAt       DateTime   @default(now())
+  confirmedAt     DateTime?
+  expiresAt       DateTime
 
   @@index([status])
   @@index([userId])
@@ -127,8 +118,6 @@ model SiteConfig {
   id                Int      @id @default(1)
 
   rateUsdPerToken   Float    @default(0.10)
-  rateBtcPerToken   Float?
-  rateEthPerToken   Float?
 
   bioText           String?
   customVideoText   String?
