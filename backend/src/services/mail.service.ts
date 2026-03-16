@@ -6,26 +6,111 @@ const log = createServiceLogger('mail');
 
 const resend = new Resend(config.resend.apiKey);
 
+const siteName = process.env.NEXT_PUBLIC_SITE_NAME || 'Goddess OS';
+const tokenName = process.env.NEXT_PUBLIC_TOKEN_NAME || 'GRACE';
+const primaryColor = process.env.NEXT_PUBLIC_PRIMARY_COLOR || '#D4AF37';
+const accentColor = process.env.NEXT_PUBLIC_ACCENT_COLOR || '#8B0000';
+
+function emailWrapper(content: string): string {
+  return `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /></head>
+<body style="margin: 0; padding: 0; background-color: #050505; font-family: 'Georgia', 'Times New Roman', serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #050505;">
+    <tr><td align="center" style="padding: 40px 16px;">
+      <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width: 480px; width: 100%;">
+        <!-- Gold top line -->
+        <tr><td style="height: 1px; background: linear-gradient(90deg, transparent, ${primaryColor}, transparent);"></td></tr>
+
+        <!-- Main card -->
+        <tr><td style="background-color: #0a0a0a; border-left: 1px solid rgba(212,175,55,0.15); border-right: 1px solid rgba(212,175,55,0.15); padding: 48px 40px;">
+
+          <!-- Logo / Site name -->
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+            <tr><td align="center" style="padding-bottom: 32px;">
+              <span style="font-family: 'Georgia', 'Times New Roman', serif; font-size: 11px; letter-spacing: 4px; text-transform: uppercase; color: rgba(212,175,55,0.5);">${siteName}</span>
+            </td></tr>
+          </table>
+
+          ${content}
+
+        </td></tr>
+
+        <!-- Gold bottom line -->
+        <tr><td style="height: 1px; background: linear-gradient(90deg, transparent, ${primaryColor}, transparent);"></td></tr>
+
+        <!-- Footer -->
+        <tr><td align="center" style="padding: 24px 0;">
+          <span style="font-family: 'Georgia', 'Times New Roman', serif; font-size: 10px; letter-spacing: 2px; color: rgba(245,240,232,0.15); text-transform: uppercase;">
+            ${siteName}
+          </span>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+}
+
 export async function sendMagicLinkEmail(email: string, token: string) {
   log.info({ to: email }, 'Sending magic link email');
   const url = `${config.isDev ? 'http://localhost:3000' : process.env.NEXT_PUBLIC_SITE_URL}/auth/verify?token=${token}`;
 
+  const html = emailWrapper(`
+    <!-- Heading -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+      <tr><td align="center" style="padding-bottom: 8px;">
+        <span style="font-family: 'Georgia', 'Times New Roman', serif; font-size: 10px; letter-spacing: 3px; text-transform: uppercase; color: rgba(212,175,55,0.4);">Private Access</span>
+      </td></tr>
+      <tr><td align="center" style="padding-bottom: 24px;">
+        <span style="font-family: 'Georgia', 'Times New Roman', serif; font-size: 26px; color: ${primaryColor};">Sign In</span>
+      </td></tr>
+      <tr><td align="center" style="padding-bottom: 32px;">
+        <div style="width: 40px; height: 1px; background-color: rgba(212,175,55,0.3);"></div>
+      </td></tr>
+    </table>
+
+    <!-- Body text -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+      <tr><td align="center" style="padding-bottom: 32px;">
+        <span style="font-family: 'Georgia', 'Times New Roman', serif; font-size: 14px; color: rgba(245,240,232,0.45); line-height: 1.7;">
+          Click the button below to securely sign in.<br />This link expires in 15 minutes.
+        </span>
+      </td></tr>
+    </table>
+
+    <!-- CTA Button -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+      <tr><td align="center" style="padding-bottom: 36px;">
+        <a href="${url}" style="display: inline-block; padding: 14px 48px; background-color: ${accentColor}; color: rgba(245,240,232,0.9); text-decoration: none; font-family: 'Georgia', 'Times New Roman', serif; font-size: 12px; letter-spacing: 3px; text-transform: uppercase; border-radius: 2px;">
+          Sign In
+        </a>
+      </td></tr>
+    </table>
+
+    <!-- Divider -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+      <tr><td align="center" style="padding-bottom: 24px;">
+        <div style="width: 100%; height: 1px; background-color: rgba(212,175,55,0.1);"></div>
+      </td></tr>
+    </table>
+
+    <!-- Footer note -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+      <tr><td align="center">
+        <span style="font-family: 'Georgia', 'Times New Roman', serif; font-size: 11px; color: rgba(245,240,232,0.2); line-height: 1.6;">
+          If you didn&rsquo;t request this link, you can safely ignore this email.
+        </span>
+      </td></tr>
+    </table>
+  `);
+
   const { error } = await resend.emails.send({
     from: config.resend.fromEmail,
     to: email,
-    subject: `Your login link for ${process.env.NEXT_PUBLIC_SITE_NAME || 'Goddess OS'}`,
-    html: `
-      <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px; background: #000; color: #fff;">
-        <h1 style="color: ${process.env.NEXT_PUBLIC_PRIMARY_COLOR || '#D4AF37'}; font-size: 24px;">
-          ${process.env.NEXT_PUBLIC_SITE_NAME || 'Goddess OS'}
-        </h1>
-        <p>Click the link below to sign in. This link expires in 15 minutes.</p>
-        <a href="${url}" style="display: inline-block; padding: 12px 32px; background: ${process.env.NEXT_PUBLIC_PRIMARY_COLOR || '#D4AF37'}; color: #000; text-decoration: none; border-radius: 4px; font-weight: bold;">
-          Sign In
-        </a>
-        <p style="margin-top: 24px; font-size: 12px; color: #888;">If you didn't request this, ignore this email.</p>
-      </div>
-    `,
+    subject: `Your sign-in link — ${siteName}`,
+    html,
   });
 
   if (error) {
@@ -34,17 +119,64 @@ export async function sendMagicLinkEmail(email: string, token: string) {
 }
 
 export async function sendPurchaseReceiptEmail(email: string, mediaTitle: string, tokensSpent: number) {
+  const html = emailWrapper(`
+    <!-- Heading -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+      <tr><td align="center" style="padding-bottom: 8px;">
+        <span style="font-family: 'Georgia', 'Times New Roman', serif; font-size: 10px; letter-spacing: 3px; text-transform: uppercase; color: rgba(212,175,55,0.4);">Confirmation</span>
+      </td></tr>
+      <tr><td align="center" style="padding-bottom: 24px;">
+        <span style="font-family: 'Georgia', 'Times New Roman', serif; font-size: 26px; color: ${primaryColor};">Purchase Complete</span>
+      </td></tr>
+      <tr><td align="center" style="padding-bottom: 32px;">
+        <div style="width: 40px; height: 1px; background-color: rgba(212,175,55,0.3);"></div>
+      </td></tr>
+    </table>
+
+    <!-- Details card -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: rgba(212,175,55,0.03); border: 1px solid rgba(212,175,55,0.1); border-radius: 4px;">
+      <tr><td style="padding: 24px 28px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+          <tr>
+            <td style="padding-bottom: 12px;">
+              <span style="font-family: 'Georgia', 'Times New Roman', serif; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: rgba(245,240,232,0.3);">Item</span>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding-bottom: 20px;">
+              <span style="font-family: 'Georgia', 'Times New Roman', serif; font-size: 16px; color: rgba(245,240,232,0.8);">${mediaTitle}</span>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding-bottom: 4px;">
+              <span style="font-family: 'Georgia', 'Times New Roman', serif; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: rgba(245,240,232,0.3);">Amount</span>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <span style="font-family: 'Georgia', 'Times New Roman', serif; font-size: 22px; color: ${primaryColor};">${tokensSpent}</span>
+              <span style="font-family: 'Georgia', 'Times New Roman', serif; font-size: 12px; letter-spacing: 2px; color: rgba(212,175,55,0.5); margin-left: 6px;">${tokenName}</span>
+            </td>
+          </tr>
+        </table>
+      </td></tr>
+    </table>
+
+    <!-- Body text -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+      <tr><td align="center" style="padding: 28px 0 0;">
+        <span style="font-family: 'Georgia', 'Times New Roman', serif; font-size: 13px; color: rgba(245,240,232,0.35); line-height: 1.7;">
+          You can access this content anytime from your vault.
+        </span>
+      </td></tr>
+    </table>
+  `);
+
   const { error } = await resend.emails.send({
     from: config.resend.fromEmail,
     to: email,
-    subject: `Purchase confirmation — ${mediaTitle}`,
-    html: `
-      <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px; background: #000; color: #fff;">
-        <h1 style="color: ${process.env.NEXT_PUBLIC_PRIMARY_COLOR || '#D4AF37'}; font-size: 24px;">Purchase Confirmed</h1>
-        <p>You purchased <strong>${mediaTitle}</strong> for <strong>${tokensSpent} ${process.env.NEXT_PUBLIC_TOKEN_NAME || 'tokens'}</strong>.</p>
-        <p>You can access it anytime from your vault.</p>
-      </div>
-    `,
+    subject: `Purchase confirmed — ${mediaTitle}`,
+    html,
   });
 
   if (error) {

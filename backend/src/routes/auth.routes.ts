@@ -79,7 +79,7 @@ authRoutes.post('/request', asyncHandler(async (req, res) => {
   // Find or create user stub — but don't create the user yet (created on verify)
   const existingUser = await prisma.user.findUnique({ where: { email: normalizedEmail } });
 
-  await prisma.magicLink.create({
+  const magicLink = await prisma.magicLink.create({
     data: {
       email: normalizedEmail,
       token,
@@ -89,7 +89,7 @@ authRoutes.post('/request', asyncHandler(async (req, res) => {
   });
 
   await sendMagicLinkEmail(normalizedEmail, token);
-  res.json({ message: 'Magic link sent' });
+  res.json({ message: 'Magic link sent', linkId: magicLink.id });
 }));
 
 // Verify magic link
@@ -140,6 +140,50 @@ authRoutes.get('/verify', asyncHandler(async (req, res) => {
   const needsUsername = !user.username;
 
   res.json({
+    token: jwtToken,
+    needsUsername,
+    user: {
+      id: user.id,
+      email: user.email,
+      username: user.username,
+      isAdmin: user.isAdmin,
+      tokenBalance: user.tokenBalance,
+    },
+  });
+}));
+
+// Poll magic link status (for the original sign-in page)
+authRoutes.get('/poll', asyncHandler(async (req, res) => {
+  const { linkId } = req.query;
+  if (!linkId || typeof linkId !== 'string') {
+    res.status(400).json({ error: 'linkId is required' });
+    return;
+  }
+
+  const magicLink = await prisma.magicLink.findUnique({ where: { id: linkId } });
+  if (!magicLink) {
+    res.status(404).json({ error: 'Not found' });
+    return;
+  }
+
+  if (!magicLink.usedAt) {
+    // Not yet verified
+    res.json({ status: 'pending' });
+    return;
+  }
+
+  // Link was used — find the user and issue a JWT
+  const user = await prisma.user.findUnique({ where: { email: magicLink.email } });
+  if (!user) {
+    res.status(404).json({ error: 'User not found' });
+    return;
+  }
+
+  const jwtToken = jwt.sign({ userId: user.id }, config.jwtSecret, { expiresIn: '30d' });
+  const needsUsername = !user.username;
+
+  res.json({
+    status: 'verified',
     token: jwtToken,
     needsUsername,
     user: {

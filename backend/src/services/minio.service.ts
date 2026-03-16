@@ -98,4 +98,10 @@ export async function abortMultipartUpload(
   log.info({ bucket: bucketName, objectKey, uploadId }, 'Aborted multipart upload');
 }
 
+export async function deleteObject(bucket: MinioBucket, objectKey: string): Promise<void> {
+  const bucketName = config.minio.buckets[bucket];
+  await minioClient.removeObject(bucketName, objectKey);
+  log.info({ bucket: bucketName, objectKey }, 'Deleted object');
+}
+
 export { minioClient };

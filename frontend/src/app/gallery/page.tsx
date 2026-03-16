@@ -146,7 +146,7 @@ function MediaCard({
 
   return (
     <motion.div
-      className="group card-luxury rounded-lg overflow-hidden transition-all duration-500 hover:glow-crimson"
+      className="group card-luxury rounded-lg overflow-hidden transition-all duration-500 hover:glow-crimson flex flex-col"
       initial={{ y: 30, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ delay: index * 0.08, duration: 0.5 }}
@@ -269,7 +269,7 @@ function MediaCard({
       )}
 
       {/* Content */}
-      <div className="p-5">
+      <div className="p-5 flex flex-col flex-1">
         <h3 className="font-heading text-foreground/90 text-sm tracking-[0.1em] uppercase mb-1">{item.title}</h3>
         {item.description && (
           <div className="mb-4">
@@ -291,7 +291,7 @@ function MediaCard({
         )}
         <button
           onClick={handlePurchase}
-          className="w-full py-2.5 text-xs tracking-[0.15em] rounded transition-all duration-300 btn-crimson"
+          className="w-full py-2.5 text-xs tracking-[0.15em] rounded transition-all duration-300 btn-crimson mt-auto
         >
           {item.purchased ? "Watch" : "Unlock Content"}
         </button>

@@ -8,6 +8,7 @@ import {
   getMultipartPartUrl,
   completeMultipartUpload,
   abortMultipartUpload,
+  deleteObject,
 } from '../services/minio.service';
 import { asyncHandler } from '../middleware/async-handler';
 import crypto from 'crypto';
@@ -162,7 +163,28 @@ adminRoutes.put('/media/:id', asyncHandler(async (req, res) => {
 
 // Delete media
 adminRoutes.delete('/media/:id', asyncHandler(async (req, res) => {
-  await prisma.media.delete({ where: { id: req.params.id as string } });
+  const media = await prisma.media.findUnique({
+    where: { id: req.params.id as string },
+    include: { assets: true },
+  });
+  if (!media) {
+    res.status(404).json({ error: 'Media not found' });
+    return;
+  }
+
+  // Delete from MinIO (best-effort — don't block DB deletion on storage failures)
+  const deletions: Promise<void>[] = [];
+  deletions.push(deleteObject('products', media.minioKey).catch(() => {}));
+  if (media.previewKey) {
+    deletions.push(deleteObject('previewVideos', media.previewKey).catch(() => {}));
+  }
+  for (const asset of media.assets) {
+    deletions.push(deleteObject('previewImages', asset.objectKey).catch(() => {}));
+  }
+  await Promise.all(deletions);
+
+  // Delete from DB (cascades to assets)
+  await prisma.media.delete({ where: { id: media.id } });
   res.json({ message: 'Deleted' });
 }));
 
@@ -182,6 +204,19 @@ adminRoutes.get('/users', asyncHandler(async (_req, res) => {
     orderBy: { createdAt: 'desc' },
   });
   res.json({ users });
+}));
+
+adminRoutes.put('/users/:id', asyncHandler(async (req, res) => {
+  const { tokenBalance } = req.body;
+  if (tokenBalance == null || typeof tokenBalance !== 'number') {
+    res.status(400).json({ error: 'tokenBalance (number) is required' });
+    return;
+  }
+  const user = await prisma.user.update({
+    where: { id: parseInt(req.params.id as string, 10) },
+    data: { tokenBalance },
+  });
+  res.json({ user: { id: user.id, email: user.email, tokenBalance: user.tokenBalance } });
 }));
 
 // --- Transactions ---

@@ -18,7 +18,17 @@ export default function Admin() {
       window.location.href = "/auth/magic-link";
       return;
     }
-    setLoading(false);
+    api.get("/auth/me")
+      .then((res) => {
+        if (!res.data.user.isAdmin) {
+          window.location.href = "/dashboard";
+        } else {
+          setLoading(false);
+        }
+      })
+      .catch(() => {
+        window.location.href = "/auth/magic-link";
+      });
   }, []);
 
   if (loading) return <div className="p-12 text-white/50">Loading...</div>;
@@ -63,7 +73,26 @@ export default function Admin() {
 
 function UsersTab() {
   const [users, setUsers] = useState<any[]>([]);
-  useEffect(() => { api.get("/admin/users").then((res) => setUsers(res.data.users)).catch((err) => alert(err.response?.data?.error || "Failed to load users")); }, []);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editBalance, setEditBalance] = useState("");
+
+  const loadUsers = () => {
+    api.get("/admin/users").then((res) => setUsers(res.data.users)).catch((err) => alert(err.response?.data?.error || "Failed to load users"));
+  };
+
+  useEffect(() => { loadUsers(); }, []);
+
+  const saveBalance = async (id: number) => {
+    const val = parseFloat(editBalance);
+    if (isNaN(val) || val < 0) return;
+    try {
+      await api.put(`/admin/users/${id}`, { tokenBalance: val });
+      setEditingId(null);
+      loadUsers();
+    } catch (err: any) {
+      alert(err.response?.data?.error || "Failed to update balance");
+    }
+  };
 
   return (
     <div className="space-y-2">
@@ -74,9 +103,37 @@ function UsersTab() {
             {u.username && <span className="ml-2 text-xs text-white/30">{u.email}</span>}
             {u.isAdmin && <span className="ml-2 text-xs bg-primary/20 text-primary px-2 py-0.5 rounded">Admin</span>}
           </div>
-          <div className="text-right">
-            <div className="text-primary font-semibold">{u.tokenBalance} {brand.tokenName}</div>
-            <div className="text-white/40 text-xs">{u._count.purchases} purchases, {u._count.transactions} deposits</div>
+          <div className="flex items-center gap-3">
+            {editingId === u.id ? (
+              <span className="flex items-center gap-1.5">
+                <input
+                  type="number"
+                  step="0.1"
+                  value={editBalance}
+                  onChange={(e) => setEditBalance(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") saveBalance(u.id);
+                    if (e.key === "Escape") setEditingId(null);
+                  }}
+                  className="px-2 py-0.5 bg-black border border-white/20 rounded text-white w-24 text-sm"
+                  autoFocus
+                />
+                <span className="text-white/40 text-xs">{brand.tokenName}</span>
+                <button onClick={() => saveBalance(u.id)} className="px-2 py-0.5 bg-primary text-black text-xs rounded font-medium">Save</button>
+                <button onClick={() => setEditingId(null)} className="px-2 py-0.5 bg-white/10 text-white/70 text-xs rounded">Cancel</button>
+              </span>
+            ) : (
+              <div className="text-right">
+                <div
+                  className="text-primary font-semibold cursor-pointer hover:text-primary/70 transition-colors"
+                  onClick={() => { setEditingId(u.id); setEditBalance(String(u.tokenBalance)); }}
+                  title="Click to edit balance"
+                >
+                  {u.tokenBalance} {brand.tokenName}
+                </div>
+                <div className="text-white/40 text-xs">{u._count.purchases} purchases, {u._count.transactions} deposits</div>
+              </div>
+            )}
           </div>
         </div>
       ))}
