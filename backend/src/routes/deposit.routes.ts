@@ -19,6 +19,7 @@ depositRoutes.get('/tiers', authMiddleware, asyncHandler(async (_req: AuthReques
       id: tier.id,
       priceUsd: tier.priceUsd,
       tokenAmount: tier.tokenAmount,
+      promoTokenAmount: tier.promoTokenAmount,
     })),
   });
 }));
@@ -43,7 +44,7 @@ depositRoutes.post('/initiate', authMiddleware, asyncHandler(async (req: AuthReq
       currency: 'pending',
       depositAddress: 'pending',
       tierId: tier.id,
-      expectedTokens: tier.tokenAmount,
+      expectedTokens: tier.promoTokenAmount ?? tier.tokenAmount,
       status: 'PENDING',
       expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
     },

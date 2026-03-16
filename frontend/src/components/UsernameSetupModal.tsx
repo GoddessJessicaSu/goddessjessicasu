@@ -5,18 +5,19 @@ import { useState, useEffect } from "react";
 import api from "@/lib/api";
 
 const CUTE_PREFIXES = [
-  "Jessica's little bug",
-  "Jessica's sweet pea",
-  "Jessica's tiny star",
-  "Jessica's baby moth",
-  "Jessica's lost puppy",
-  "Jessica's good pet",
-  "Jessica's little worm",
-  "Jessica's dust bunny",
+  "Jessica's stray crawfish",
+  "Jessica's kitchen cockroach",
+  "Jessica's silent locust",
+  "Jessica's caged cricket",
+  "Jessica's dusty bug",
+  "Jessica's corner spider",
+  "Jessica's trail-leaving snail",
+  "Jessica's bowl-feeding mealworm",
 ];
 
 function generateRandomUsername(): string {
-  const prefix = CUTE_PREFIXES[Math.floor(Math.random() * CUTE_PREFIXES.length)];
+  const prefix =
+    CUTE_PREFIXES[Math.floor(Math.random() * CUTE_PREFIXES.length)];
   const num = Math.floor(1000 + Math.random() * 9000);
   return `${prefix} #${num}`;
 }
@@ -40,7 +41,10 @@ interface UsernameSetupModalProps {
   onComplete: (username: string) => void;
 }
 
-export default function UsernameSetupModal({ email, onComplete }: UsernameSetupModalProps) {
+export default function UsernameSetupModal({
+  email,
+  onComplete,
+}: UsernameSetupModalProps) {
   const [username, setUsername] = useState("");
   const [suggested, setSuggested] = useState("");
   const [randomName, setRandomName] = useState("");
@@ -94,7 +98,8 @@ export default function UsernameSetupModal({ email, onComplete }: UsernameSetupM
               Choose Your Name
             </h2>
             <p className="text-foreground/40 text-sm leading-relaxed">
-              Pick a display name that others will see. You can always change it later.
+              Pick a display name that others will see. You can always change it
+              later.
             </p>
           </div>
 
@@ -112,7 +117,9 @@ export default function UsernameSetupModal({ email, onComplete }: UsernameSetupM
                 <span className="text-foreground/70 group-hover:text-foreground/90 transition-colors">
                   {suggested}
                 </span>
-                <span className="text-primary/40 text-xs ml-2">click to use</span>
+                <span className="text-primary/40 text-xs ml-2">
+                  click to use
+                </span>
               </button>
             </div>
 
@@ -129,7 +136,8 @@ export default function UsernameSetupModal({ email, onComplete }: UsernameSetupM
                   setError("");
                 }}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter" && username.trim()) handleSubmit(username);
+                  if (e.key === "Enter" && username.trim())
+                    handleSubmit(username);
                 }}
                 placeholder="Enter a display name..."
                 maxLength={30}
@@ -137,7 +145,9 @@ export default function UsernameSetupModal({ email, onComplete }: UsernameSetupM
               />
               <div className="flex justify-between mt-1">
                 <span className="text-red-400/80 text-xs">{error}</span>
-                <span className="text-foreground/20 text-xs">{username.length}/30</span>
+                <span className="text-foreground/20 text-xs">
+                  {username.length}/30
+                </span>
               </div>
             </div>
 
@@ -165,7 +175,8 @@ export default function UsernameSetupModal({ email, onComplete }: UsernameSetupM
 
             {/* Skip explanation */}
             <p className="text-foreground/20 text-xs text-center leading-relaxed">
-              Skip to get a random name: <span className="text-primary/40 italic">{randomName}</span>
+              Skip to get a random name:{" "}
+              <span className="text-primary/40 italic">{randomName}</span>
             </p>
           </div>
         </motion.div>

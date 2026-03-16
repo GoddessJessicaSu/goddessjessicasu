@@ -65,11 +65,12 @@ model Transaction {
 }
 
 model TokenTier {
-  id           String        @id @default(cuid())
-  priceUsd     Float
-  tokenAmount  Float
-  isActive     Boolean       @default(true)
-  sortOrder    Int           @default(0)
+  id               String        @id @default(cuid())
+  priceUsd         Float
+  tokenAmount      Float
+  promoTokenAmount Float?
+  isActive         Boolean       @default(true)
+  sortOrder        Int           @default(0)
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
   transactions Transaction[]

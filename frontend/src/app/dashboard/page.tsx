@@ -24,6 +24,7 @@ interface TierInfo {
   id: string;
   priceUsd: number;
   tokenAmount: number;
+  promoTokenAmount: number | null;
 }
 
 export default function Dashboard() {
@@ -137,22 +138,42 @@ export default function Dashboard() {
 
         {/* Tier Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-          {tiers.map((tier) => (
-            <button
-              key={tier.id}
-              onClick={() => setSelectedTier(tier)}
-              className={`group relative flex flex-col items-center p-6 rounded-lg border transition-all duration-300 ${
-                selectedTier?.id === tier.id
-                  ? "border-primary bg-primary/8 glow-gold"
-                  : "border-gold bg-vanta/50 hover:border-primary/50"
-              }`}
-            >
-              <span className="font-heading text-2xl text-foreground/90 mb-1">${tier.priceUsd}</span>
-              <span className="text-primary/60 text-xs tracking-[0.1em]">
-                {tier.tokenAmount.toLocaleString()} {brand.tokenName}
-              </span>
-            </button>
-          ))}
+          {tiers.map((tier) => {
+            const hasPromo = tier.promoTokenAmount != null;
+            const displayAmount = hasPromo ? tier.promoTokenAmount! : tier.tokenAmount;
+            return (
+              <button
+                key={tier.id}
+                onClick={() => setSelectedTier(tier)}
+                className={`group relative flex flex-col items-center p-6 rounded-lg border transition-all duration-300 ${
+                  selectedTier?.id === tier.id
+                    ? "border-primary bg-primary/8 glow-gold"
+                    : "border-gold bg-vanta/50 hover:border-primary/50"
+                }`}
+              >
+                {hasPromo && (
+                  <span className="absolute -top-2.5 right-3 text-[9px] font-heading tracking-[0.2em] uppercase bg-accent text-foreground/90 px-2 py-0.5 rounded">
+                    Promo
+                  </span>
+                )}
+                <span className="font-heading text-2xl text-foreground/90 mb-1">${tier.priceUsd}</span>
+                {hasPromo ? (
+                  <span className="text-xs tracking-[0.1em] flex flex-col items-center gap-0.5">
+                    <span className="line-through text-accent/60 text-[10px] decoration-accent/80">
+                      {tier.tokenAmount.toLocaleString()} {brand.tokenName}
+                    </span>
+                    <span className="text-primary font-heading text-sm">
+                      {displayAmount.toLocaleString()} {brand.tokenName}
+                    </span>
+                  </span>
+                ) : (
+                  <span className="text-primary/60 text-xs tracking-[0.1em]">
+                    {tier.tokenAmount.toLocaleString()} {brand.tokenName}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
         {tiers.length === 0 && (
           <p className="text-foreground/30 text-sm font-heading tracking-[0.1em]">No packages available.</p>
@@ -168,9 +189,20 @@ export default function Dashboard() {
             <div className="flex items-center justify-between mb-6">
               <div>
                 <p className="text-foreground/35 text-xs tracking-[0.15em] uppercase mb-1">You&apos;ll receive</p>
-                <span className="font-heading text-3xl text-gold-shimmer">
-                  {selectedTier.tokenAmount.toLocaleString()} <span className="text-lg">{brand.tokenName}</span>
-                </span>
+                {selectedTier.promoTokenAmount != null ? (
+                  <div>
+                    <span className="font-heading text-lg text-accent/50 line-through decoration-accent/60 mr-2">
+                      {selectedTier.tokenAmount.toLocaleString()}
+                    </span>
+                    <span className="font-heading text-3xl text-gold-shimmer">
+                      {selectedTier.promoTokenAmount.toLocaleString()} <span className="text-lg">{brand.tokenName}</span>
+                    </span>
+                  </div>
+                ) : (
+                  <span className="font-heading text-3xl text-gold-shimmer">
+                    {selectedTier.tokenAmount.toLocaleString()} <span className="text-lg">{brand.tokenName}</span>
+                  </span>
+                )}
               </div>
               <div className="text-right">
                 <p className="text-foreground/35 text-xs tracking-[0.15em] uppercase mb-1">Price</p>

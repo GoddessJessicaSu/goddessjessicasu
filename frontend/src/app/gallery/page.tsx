@@ -1,7 +1,7 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { useEffect, useState, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useState, useRef, useCallback } from "react";
 import api from "@/lib/api";
 import { brand } from "@/lib/brand";
 
@@ -21,6 +21,8 @@ export default function Gallery() {
   const [media, setMedia] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [lightbox, setLightbox] = useState<{ urls: string[]; index: number; title: string } | null>(null);
+  const [descModal, setDescModal] = useState<{ title: string; description: string } | null>(null);
 
   useEffect(() => {
     api.get("/gallery")
@@ -30,6 +32,10 @@ export default function Gallery() {
       })
       .finally(() => setLoading(false));
   }, []);
+
+  const openLightbox = (urls: string[], index: number, title: string) => {
+    setLightbox({ urls, index, title });
+  };
 
   return (
     <motion.div
@@ -59,16 +65,60 @@ export default function Gallery() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
           {media.map((item, i) => (
-            <MediaCard key={item.id} item={item} index={i} />
+            <MediaCard key={item.id} item={item} index={i} onImageClick={openLightbox} onReadMore={(title, desc) => setDescModal({ title, description: desc })} />
           ))}
         </div>
       )}
+
+      {/* Lightbox */}
+      <AnimatePresence>
+        {lightbox && (
+          <Lightbox
+            urls={lightbox.urls}
+            initialIndex={lightbox.index}
+            title={lightbox.title}
+            onClose={() => setLightbox(null)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Description Modal */}
+      <AnimatePresence>
+        {descModal && (
+          <DescriptionModal
+            title={descModal.title}
+            description={descModal.description}
+            onClose={() => setDescModal(null)}
+          />
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
 
-function MediaCard({ item, index }: { item: MediaItem; index: number }) {
+function MediaCard({
+  item,
+  index,
+  onImageClick,
+  onReadMore,
+}: {
+  item: MediaItem;
+  index: number;
+  onImageClick: (urls: string[], index: number, title: string) => void;
+  onReadMore: (title: string, description: string) => void;
+}) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const descRef = useRef<HTMLParagraphElement>(null);
+  const [expanded, setExpanded] = useState(false);
+  const [isClamped, setIsClamped] = useState(false);
+  const hasMultiple = item.thumbnailUrls.length > 1;
+
+  useEffect(() => {
+    const el = descRef.current;
+    if (el) {
+      setIsClamped(el.scrollHeight > el.clientHeight);
+    }
+  }, [item.description]);
 
   const handleMouseEnter = () => {
     if (videoRef.current && item.previewUrl) {
@@ -104,8 +154,15 @@ function MediaCard({ item, index }: { item: MediaItem; index: number }) {
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      {/* Image/Video area */}
-      <div className="aspect-video bg-vanta relative overflow-hidden">
+      {/* Main image/video */}
+      <div
+        className="aspect-video bg-vanta relative overflow-hidden cursor-pointer"
+        onClick={() => {
+          if (item.thumbnailUrls.length > 0) {
+            onImageClick(item.thumbnailUrls, 0, item.title);
+          }
+        }}
+      >
         {item.previewUrl ? (
           <video
             ref={videoRef}
@@ -128,34 +185,347 @@ function MediaCard({ item, index }: { item: MediaItem; index: number }) {
           </div>
         )}
 
-        {/* Price badge overlay */}
+        {/* Price badge */}
         <div className="absolute top-3 right-3 bg-vanta/80 backdrop-blur-sm border border-gold px-3 py-1">
           <span className="font-heading text-primary text-xs tracking-[0.1em]">
             {item.priceTokens} {brand.tokenName}
           </span>
         </div>
 
+        {/* Image count badge */}
+        {hasMultiple && (
+          <div className="absolute top-3 left-3 bg-vanta/80 backdrop-blur-sm border border-gold/50 px-2.5 py-1 flex items-center gap-1.5">
+            <svg className="w-3 h-3 text-primary/70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21z" />
+            </svg>
+            <span className="font-heading text-foreground/50 text-[10px] tracking-[0.1em]">
+              {item.thumbnailUrls.length}
+            </span>
+          </div>
+        )}
+
         {/* Bottom gradient */}
         <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-matte to-transparent" />
       </div>
+
+      {/* Thumbnail strip — show on hover or when expanded */}
+      {hasMultiple && (
+        <div className="relative">
+          <button
+            onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
+            className="w-full flex items-center justify-center gap-2 py-2 bg-vanta/80 border-b border-gold/30 hover:bg-vanta transition-colors duration-300"
+          >
+            <span className="text-foreground/30 text-[10px] tracking-[0.2em] uppercase font-heading">
+              {expanded ? "Hide previews" : `View all ${item.thumbnailUrls.length} photos`}
+            </span>
+            <motion.svg
+              className="w-3 h-3 text-primary/40"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+              animate={{ rotate: expanded ? 180 : 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+            </motion.svg>
+          </button>
+
+          <AnimatePresence>
+            {expanded && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                className="overflow-hidden"
+              >
+                <div className="p-3 grid grid-cols-4 gap-1.5 bg-vanta/60">
+                  {item.thumbnailUrls.map((url, i) => (
+                    <motion.div
+                      key={i}
+                      className="aspect-square overflow-hidden rounded cursor-pointer relative group/thumb"
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: i * 0.04, duration: 0.3 }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onImageClick(item.thumbnailUrls, i, item.title);
+                      }}
+                    >
+                      <img
+                        src={url}
+                        alt={`${item.title} preview ${i + 1}`}
+                        className="w-full h-full object-cover transition-all duration-300 group-hover/thumb:scale-110 group-hover/thumb:brightness-125"
+                      />
+                      <div className="absolute inset-0 bg-black/0 group-hover/thumb:bg-black/20 transition-colors duration-300" />
+                    </motion.div>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      )}
 
       {/* Content */}
       <div className="p-5">
         <h3 className="font-heading text-foreground/90 text-sm tracking-[0.1em] uppercase mb-1">{item.title}</h3>
         {item.description && (
-          <p className="text-foreground/35 text-xs leading-relaxed mb-4 line-clamp-2">{item.description}</p>
+          <div className="mb-4">
+            <p
+              ref={descRef}
+              className="text-foreground/35 text-xs leading-relaxed line-clamp-2"
+            >
+              {item.description}
+            </p>
+            {isClamped && (
+              <button
+                onClick={() => onReadMore(item.title, item.description!)}
+                className="text-primary/50 hover:text-primary/80 text-[10px] tracking-[0.15em] uppercase mt-1.5 transition-colors duration-300"
+              >
+                Read more
+              </button>
+            )}
+          </div>
         )}
         <button
           onClick={handlePurchase}
-          className={`w-full py-2.5 text-xs tracking-[0.15em] rounded transition-all duration-300 ${
-            item.purchased
-              ? "btn-crimson"
-              : "btn-crimson"
-          }`}
+          className="w-full py-2.5 text-xs tracking-[0.15em] rounded transition-all duration-300 btn-crimson"
         >
           {item.purchased ? "Watch" : "Unlock Content"}
         </button>
       </div>
+    </motion.div>
+  );
+}
+
+/* ─── Lightbox ─────────────────────────────────────────────────────── */
+
+function Lightbox({
+  urls,
+  initialIndex,
+  title,
+  onClose,
+}: {
+  urls: string[];
+  initialIndex: number;
+  title: string;
+  onClose: () => void;
+}) {
+  const [index, setIndex] = useState(initialIndex);
+  const [direction, setDirection] = useState(0);
+
+  const go = useCallback((dir: number) => {
+    setDirection(dir);
+    setIndex((prev) => {
+      const next = prev + dir;
+      if (next < 0) return urls.length - 1;
+      if (next >= urls.length) return 0;
+      return next;
+    });
+  }, [urls.length]);
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+      if (e.key === "ArrowLeft") go(-1);
+      if (e.key === "ArrowRight") go(1);
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [onClose, go]);
+
+  const variants = {
+    enter: (d: number) => ({ x: d > 0 ? 300 : -300, opacity: 0 }),
+    center: { x: 0, opacity: 1 },
+    exit: (d: number) => ({ x: d > 0 ? -300 : 300, opacity: 0 }),
+  };
+
+  return (
+    <motion.div
+      className="fixed inset-0 z-[100] flex items-center justify-center"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.3 }}
+    >
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/90 backdrop-blur-md" onClick={onClose} />
+
+      {/* Close button */}
+      <button
+        onClick={onClose}
+        className="absolute top-6 right-6 z-10 w-10 h-10 flex items-center justify-center rounded-full border border-gold/30 bg-vanta/60 text-foreground/50 hover:text-foreground hover:border-primary/50 transition-all duration-300"
+      >
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+
+      {/* Title + counter */}
+      <div className="absolute top-6 left-6 z-10">
+        <p className="font-heading text-foreground/60 text-sm tracking-[0.1em] uppercase">{title}</p>
+        <p className="text-foreground/30 text-xs mt-1">
+          {index + 1} / {urls.length}
+        </p>
+      </div>
+
+      {/* Main image */}
+      <div className="relative z-10 w-full max-w-4xl mx-8 aspect-[4/3] flex items-center justify-center">
+        <AnimatePresence mode="wait" custom={direction}>
+          <motion.img
+            key={index}
+            src={urls[index]}
+            alt={`${title} ${index + 1}`}
+            className="max-w-full max-h-[75vh] object-contain rounded-lg shadow-2xl"
+            custom={direction}
+            variants={variants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+            draggable={false}
+          />
+        </AnimatePresence>
+      </div>
+
+      {/* Nav arrows */}
+      {urls.length > 1 && (
+        <>
+          <button
+            onClick={(e) => { e.stopPropagation(); go(-1); }}
+            className="absolute left-4 md:left-8 z-10 w-12 h-12 flex items-center justify-center rounded-full border border-gold/20 bg-vanta/40 text-foreground/40 hover:text-primary hover:border-primary/40 hover:bg-vanta/70 transition-all duration-300"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); go(1); }}
+            className="absolute right-4 md:right-8 z-10 w-12 h-12 flex items-center justify-center rounded-full border border-gold/20 bg-vanta/40 text-foreground/40 hover:text-primary hover:border-primary/40 hover:bg-vanta/70 transition-all duration-300"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </>
+      )}
+
+      {/* Thumbnail strip at bottom */}
+      {urls.length > 1 && (
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 flex gap-2 p-2 rounded-lg bg-vanta/60 backdrop-blur-sm border border-gold/20">
+          {urls.map((url, i) => (
+            <button
+              key={i}
+              onClick={(e) => {
+                e.stopPropagation();
+                setDirection(i > index ? 1 : -1);
+                setIndex(i);
+              }}
+              className={`w-12 h-12 rounded overflow-hidden transition-all duration-300 ${
+                i === index
+                  ? "ring-2 ring-primary brightness-100 scale-110"
+                  : "brightness-50 hover:brightness-75"
+              }`}
+            >
+              <img src={url} alt="" className="w-full h-full object-cover" />
+            </button>
+          ))}
+        </div>
+      )}
+    </motion.div>
+  );
+}
+
+/* ─── Description Modal ────────────────────────────────────────────── */
+
+function renderBoldText(text: string) {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return (
+        <strong key={i} className="text-foreground/80 font-semibold">
+          {part.slice(2, -2)}
+        </strong>
+      );
+    }
+    return <span key={i}>{part}</span>;
+  });
+}
+
+function DescriptionModal({
+  title,
+  description,
+  onClose,
+}: {
+  title: string;
+  description: string;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [onClose]);
+
+  const paragraphs = description.split(/\n\s*\n/).filter(Boolean);
+
+  return (
+    <motion.div
+      className="fixed inset-0 z-[100] flex items-center justify-center"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.3 }}
+    >
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/85 backdrop-blur-md" onClick={onClose} />
+
+      {/* Modal */}
+      <motion.div
+        className="relative z-10 w-full max-w-lg mx-6 max-h-[80vh] flex flex-col bg-vanta border border-gold/40 rounded-lg overflow-hidden shadow-2xl"
+        initial={{ scale: 0.95, y: 20, opacity: 0 }}
+        animate={{ scale: 1, y: 0, opacity: 1 }}
+        exit={{ scale: 0.95, y: 20, opacity: 0 }}
+        transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+      >
+        {/* Header */}
+        <div className="flex items-start justify-between p-6 pb-4 border-b border-gold/15">
+          <div>
+            <p className="font-heading text-primary/40 text-[10px] tracking-[0.4em] uppercase mb-2">About</p>
+            <h3 className="font-heading text-foreground/90 text-lg tracking-[0.08em] uppercase">{title}</h3>
+          </div>
+          <button
+            onClick={onClose}
+            className="mt-1 w-8 h-8 flex items-center justify-center rounded-full border border-gold/20 text-foreground/30 hover:text-foreground/70 hover:border-primary/40 transition-all duration-300"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+          <div className="space-y-4">
+            {paragraphs.map((para, i) => (
+              <p
+                key={i}
+                className="text-foreground/60 text-sm leading-[1.8] whitespace-pre-line"
+              >
+                {renderBoldText(para)}
+              </p>
+            ))}
+          </div>
+        </div>
+
+        {/* Footer fade */}
+        <div className="h-8 bg-gradient-to-t from-vanta to-transparent -mt-8 relative z-10 pointer-events-none" />
+      </motion.div>
     </motion.div>
   );
 }

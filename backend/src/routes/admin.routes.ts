@@ -231,12 +231,13 @@ adminRoutes.post('/tiers', asyncHandler(async (req, res) => {
 }));
 
 adminRoutes.put('/tiers/:id', asyncHandler(async (req, res) => {
-  const { priceUsd, tokenAmount, isActive, sortOrder } = req.body;
+  const { priceUsd, tokenAmount, promoTokenAmount, isActive, sortOrder } = req.body;
   const tier = await prisma.tokenTier.update({
     where: { id: req.params.id as string },
     data: {
       ...(priceUsd !== undefined && { priceUsd }),
       ...(tokenAmount !== undefined && { tokenAmount }),
+      ...(promoTokenAmount !== undefined && { promoTokenAmount: promoTokenAmount || null }),
       ...(isActive !== undefined && { isActive }),
       ...(sortOrder !== undefined && { sortOrder }),
     },

@@ -157,8 +157,15 @@ interface Tier {
   id: string;
   priceUsd: number;
   tokenAmount: number;
+  promoTokenAmount: number | null;
   isActive: boolean;
   sortOrder: number;
+}
+
+interface TierEditData {
+  priceUsd?: number;
+  tokenAmount?: number;
+  promoTokenAmount?: number | null;
 }
 
 function TiersSection() {
@@ -166,7 +173,8 @@ function TiersSection() {
   const [newPriceUsd, setNewPriceUsd] = useState("");
   const [newTokenAmount, setNewTokenAmount] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editData, setEditData] = useState<Partial<Tier>>({});
+  const [editData, setEditData] = useState<TierEditData>({});
+  const [promoInput, setPromoInput] = useState("");
 
   const loadTiers = () => {
     api.get("/admin/tiers").then((res) => setTiers(res.data.tiers)).catch(() => alert("Failed to load tiers"));
@@ -189,10 +197,12 @@ function TiersSection() {
   };
 
   const handleUpdate = async (id: string) => {
+    const promoVal = promoInput.trim() ? parseFloat(promoInput) : null;
     try {
-      await api.put(`/admin/tiers/${id}`, editData);
+      await api.put(`/admin/tiers/${id}`, { ...editData, promoTokenAmount: promoVal });
       setEditingId(null);
       setEditData({});
+      setPromoInput("");
       loadTiers();
     } catch {
       alert("Failed to update tier");
@@ -218,33 +228,60 @@ function TiersSection() {
     }
   };
 
+  const startEdit = (tier: Tier) => {
+    setEditingId(tier.id);
+    setEditData({ priceUsd: tier.priceUsd, tokenAmount: tier.tokenAmount });
+    setPromoInput(tier.promoTokenAmount ? String(tier.promoTokenAmount) : "");
+  };
+
   return (
     <div className="bg-white/5 rounded-lg p-6 border border-white/10">
       <h3 className="text-lg font-semibold mb-4">Token Tiers</h3>
 
       <div className="space-y-2 mb-6">
         {tiers.map((tier) => (
-          <div key={tier.id} className="flex items-center gap-3 bg-black/30 rounded p-3 border border-white/10">
+          <div key={tier.id} className="bg-black/30 rounded p-3 border border-white/10">
             {editingId === tier.id ? (
-              <>
-                <input type="number" step="0.01" value={editData.priceUsd ?? tier.priceUsd} onChange={(e) => setEditData({ ...editData, priceUsd: parseFloat(e.target.value) })} className="px-2 py-1 bg-black border border-white/10 rounded text-white w-24" />
-                <span className="text-white/30">USD →</span>
-                <input type="number" value={editData.tokenAmount ?? tier.tokenAmount} onChange={(e) => setEditData({ ...editData, tokenAmount: parseFloat(e.target.value) })} className="px-2 py-1 bg-black border border-white/10 rounded text-white w-28" />
-                <span className="text-white/30">{brand.tokenName}</span>
-                <button onClick={() => handleUpdate(tier.id)} className="px-3 py-1 bg-primary text-black text-sm rounded font-medium">Save</button>
-                <button onClick={() => { setEditingId(null); setEditData({}); }} className="px-3 py-1 bg-white/10 text-white/70 text-sm rounded">Cancel</button>
-              </>
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <div>
+                    <label className="text-white/30 text-[10px] uppercase tracking-wider block mb-1">Price (USD)</label>
+                    <input type="number" step="0.01" value={editData.priceUsd ?? tier.priceUsd} onChange={(e) => setEditData({ ...editData, priceUsd: parseFloat(e.target.value) })} className="px-2 py-1 bg-black border border-white/10 rounded text-white w-24" />
+                  </div>
+                  <div>
+                    <label className="text-white/30 text-[10px] uppercase tracking-wider block mb-1">Base {brand.tokenName}</label>
+                    <input type="number" value={editData.tokenAmount ?? tier.tokenAmount} onChange={(e) => setEditData({ ...editData, tokenAmount: parseFloat(e.target.value) })} className="px-2 py-1 bg-black border border-white/10 rounded text-white w-28" />
+                  </div>
+                  <div>
+                    <label className="text-white/30 text-[10px] uppercase tracking-wider block mb-1">Promo {brand.tokenName} <span className="text-white/15">(optional)</span></label>
+                    <input type="number" value={promoInput} onChange={(e) => setPromoInput(e.target.value)} placeholder="—" className="px-2 py-1 bg-black border border-white/10 rounded text-white w-28 placeholder:text-white/15" />
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={() => handleUpdate(tier.id)} className="px-3 py-1 bg-primary text-black text-sm rounded font-medium">Save</button>
+                  <button onClick={() => { setEditingId(null); setEditData({}); setPromoInput(""); }} className="px-3 py-1 bg-white/10 text-white/70 text-sm rounded">Cancel</button>
+                </div>
+              </div>
             ) : (
-              <>
+              <div className="flex items-center gap-3">
                 <span className="font-medium text-primary">${tier.priceUsd}</span>
-                <span className="text-white/30">→</span>
-                <span className="font-medium">{tier.tokenAmount.toLocaleString()} {brand.tokenName}</span>
+                <span className="text-white/30">&rarr;</span>
+                {tier.promoTokenAmount ? (
+                  <span className="font-medium">
+                    <span className="line-through text-red-400/60 text-sm">{tier.tokenAmount.toLocaleString()}</span>
+                    <span className="ml-1.5 text-primary">{tier.promoTokenAmount.toLocaleString()}</span>
+                    <span className="text-white/50 ml-1">{brand.tokenName}</span>
+                    <span className="ml-2 text-[10px] bg-red-900/40 text-red-300 px-1.5 py-0.5 rounded uppercase tracking-wider">Promo</span>
+                  </span>
+                ) : (
+                  <span className="font-medium">{tier.tokenAmount.toLocaleString()} {brand.tokenName}</span>
+                )}
                 <span className={`ml-auto text-xs px-2 py-0.5 rounded cursor-pointer ${tier.isActive ? "bg-green-900 text-green-300" : "bg-red-900 text-red-300"}`} onClick={() => handleToggleActive(tier)}>
                   {tier.isActive ? "Active" : "Inactive"}
                 </span>
-                <button onClick={() => { setEditingId(tier.id); setEditData({ priceUsd: tier.priceUsd, tokenAmount: tier.tokenAmount }); }} className="px-3 py-1 bg-white/10 text-white/70 text-sm rounded hover:bg-white/20">Edit</button>
+                <button onClick={() => startEdit(tier)} className="px-3 py-1 bg-white/10 text-white/70 text-sm rounded hover:bg-white/20">Edit</button>
                 <button onClick={() => handleDelete(tier.id)} className="px-3 py-1 bg-red-900/50 text-red-300 text-sm rounded hover:bg-red-900">Delete</button>
-              </>
+              </div>
             )}
           </div>
         ))}
