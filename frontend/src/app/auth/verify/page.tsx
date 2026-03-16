@@ -3,11 +3,13 @@
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import api from "@/lib/api";
+import UsernameSetupModal from "@/components/UsernameSetupModal";
 
 function VerifyContent() {
   const searchParams = useSearchParams();
-  const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
+  const [status, setStatus] = useState<"loading" | "success" | "username-setup" | "error">("loading");
   const [error, setError] = useState("");
+  const [email, setEmail] = useState("");
 
   useEffect(() => {
     const token = searchParams.get("token");
@@ -20,10 +22,16 @@ function VerifyContent() {
     api.get(`/auth/verify?token=${token}`)
       .then((res) => {
         localStorage.setItem("token", res.data.token);
-        setStatus("success");
-        setTimeout(() => {
-          window.location.href = "/dashboard";
-        }, 1500);
+        setEmail(res.data.user.email);
+
+        if (res.data.needsUsername) {
+          setStatus("username-setup");
+        } else {
+          setStatus("success");
+          setTimeout(() => {
+            window.location.href = "/dashboard";
+          }, 1500);
+        }
       })
       .catch((err) => {
         setStatus("error");
@@ -31,9 +39,23 @@ function VerifyContent() {
       });
   }, [searchParams]);
 
+  const handleUsernameComplete = () => {
+    setStatus("success");
+    setTimeout(() => {
+      window.location.href = "/dashboard";
+    }, 1000);
+  };
+
   return (
     <div className="text-center">
       {status === "loading" && <div className="text-white/50 text-lg">Verifying...</div>}
+      {status === "username-setup" && (
+        <div>
+          <div className="text-primary text-2xl font-bold mb-2">Signed in!</div>
+          <p className="text-white/50">Setting up your profile...</p>
+          <UsernameSetupModal email={email} onComplete={handleUsernameComplete} />
+        </div>
+      )}
       {status === "success" && (
         <div>
           <div className="text-primary text-2xl font-bold mb-2">Signed in!</div>

@@ -70,7 +70,8 @@ function UsersTab() {
       {users.map((u: any) => (
         <div key={u.id} className="flex items-center justify-between bg-white/5 rounded p-3 border border-white/10">
           <div>
-            <span className="font-medium">{u.email}</span>
+            <span className="font-medium">{u.username || u.email}</span>
+            {u.username && <span className="ml-2 text-xs text-white/30">{u.email}</span>}
             {u.isAdmin && <span className="ml-2 text-xs bg-primary/20 text-primary px-2 py-0.5 rounded">Admin</span>}
           </div>
           <div className="text-right">
@@ -92,7 +93,7 @@ function TransactionsTab() {
       {txs.map((tx: any) => (
         <div key={tx.id} className="bg-white/5 rounded p-3 border border-white/10">
           <div className="flex justify-between">
-            <span className="font-medium">{tx.user?.email}</span>
+            <span className="font-medium">{tx.user?.username || tx.user?.email}</span>
             <span className={`text-xs px-2 py-0.5 rounded ${tx.status === "CONFIRMED" ? "bg-green-900 text-green-300" : tx.status === "EXPIRED" ? "bg-red-900 text-red-300" : "bg-yellow-900 text-yellow-300"}`}>
               {tx.status}
             </span>

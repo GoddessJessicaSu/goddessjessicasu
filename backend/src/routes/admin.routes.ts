@@ -173,6 +173,7 @@ adminRoutes.get('/users', asyncHandler(async (_req, res) => {
     select: {
       id: true,
       email: true,
+      username: true,
       isAdmin: true,
       tokenBalance: true,
       createdAt: true,
@@ -193,7 +194,7 @@ adminRoutes.get('/transactions', asyncHandler(async (req, res) => {
       ...(status && { status: status as any }),
       ...(currency && { currency: currency as any }),
     },
-    include: { user: { select: { email: true } } },
+    include: { user: { select: { email: true, username: true } } },
     orderBy: { createdAt: 'desc' },
     take: 100,
   });

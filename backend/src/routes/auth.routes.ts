@@ -20,6 +20,44 @@ authRoutes.get('/me', authMiddleware, asyncHandler(async (req: AuthRequest, res)
     user: {
       id: user.id,
       email: user.email,
+      username: user.username,
+      isAdmin: user.isAdmin,
+      tokenBalance: user.tokenBalance,
+    },
+  });
+}));
+
+// Set username
+authRoutes.put('/username', authMiddleware, asyncHandler(async (req: AuthRequest, res) => {
+  const { username } = req.body;
+  if (!username || typeof username !== 'string') {
+    res.status(400).json({ error: 'Username is required' });
+    return;
+  }
+
+  const trimmed = username.trim();
+  if (trimmed.length < 2 || trimmed.length > 30) {
+    res.status(400).json({ error: 'Username must be 2-30 characters' });
+    return;
+  }
+
+  // Check uniqueness
+  const existing = await prisma.user.findUnique({ where: { username: trimmed } });
+  if (existing && existing.id !== req.user!.id) {
+    res.status(409).json({ error: 'Username already taken' });
+    return;
+  }
+
+  const user = await prisma.user.update({
+    where: { id: req.user!.id },
+    data: { username: trimmed },
+  });
+
+  res.json({
+    user: {
+      id: user.id,
+      email: user.email,
+      username: user.username,
       isAdmin: user.isAdmin,
       tokenBalance: user.tokenBalance,
     },
@@ -84,8 +122,10 @@ authRoutes.get('/verify', asyncHandler(async (req, res) => {
 
   // Find or create user
   let user = await prisma.user.findUnique({ where: { email: magicLink.email } });
+  let isNewUser = false;
 
   if (!user) {
+    isNewUser = true;
     user = await prisma.user.create({
       data: {
         email: magicLink.email,
@@ -96,11 +136,16 @@ authRoutes.get('/verify', asyncHandler(async (req, res) => {
 
   const jwtToken = jwt.sign({ userId: user.id }, config.jwtSecret, { expiresIn: '30d' });
 
+  // If user has no username, treat as needing setup
+  const needsUsername = !user.username;
+
   res.json({
     token: jwtToken,
+    needsUsername,
     user: {
       id: user.id,
       email: user.email,
+      username: user.username,
       isAdmin: user.isAdmin,
       tokenBalance: user.tokenBalance,
     },

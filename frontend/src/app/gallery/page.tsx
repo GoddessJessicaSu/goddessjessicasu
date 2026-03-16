@@ -36,20 +36,30 @@ export default function Gallery() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="max-w-6xl mx-auto px-6 py-12"
+      transition={{ duration: 0.6 }}
+      className="max-w-7xl mx-auto px-8 py-16"
     >
-      <h1 className="text-4xl font-bold text-primary mb-8">Gallery</h1>
+      {/* Header */}
+      <div className="mb-16">
+        <p className="font-heading text-primary/50 text-xs tracking-[0.4em] uppercase mb-4">The Collection</p>
+        <h1 className="font-heading text-4xl md:text-5xl text-gold-shimmer">Gallery</h1>
+        <div className="w-16 h-px bg-primary/30 mt-6" />
+      </div>
 
       {loading ? (
-        <div className="text-white/50">Loading...</div>
+        <div className="flex items-center justify-center py-32">
+          <div className="font-heading text-primary/30 text-sm tracking-[0.3em] uppercase">Loading...</div>
+        </div>
       ) : error ? (
-        <div className="text-red-400">{error}</div>
+        <div className="text-accent text-center py-32">{error}</div>
       ) : media.length === 0 ? (
-        <div className="text-white/50">No content available yet.</div>
+        <div className="text-center py-32">
+          <p className="font-heading text-foreground/30 text-sm tracking-[0.2em] uppercase">No content available yet</p>
+        </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {media.map((item) => (
-            <MediaCard key={item.id} item={item} />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+          {media.map((item, i) => (
+            <MediaCard key={item.id} item={item} index={i} />
           ))}
         </div>
       )}
@@ -57,7 +67,7 @@ export default function Gallery() {
   );
 }
 
-function MediaCard({ item }: { item: MediaItem }) {
+function MediaCard({ item, index }: { item: MediaItem; index: number }) {
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const handleMouseEnter = () => {
@@ -86,12 +96,16 @@ function MediaCard({ item }: { item: MediaItem }) {
 
   return (
     <motion.div
-      className="bg-white/5 rounded-lg overflow-hidden border border-white/10 hover:border-primary/50 transition-colors"
-      whileHover={{ y: -4 }}
+      className="group card-luxury rounded-lg overflow-hidden transition-all duration-500 hover:glow-crimson"
+      initial={{ y: 30, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ delay: index * 0.08, duration: 0.5 }}
+      whileHover={{ y: -6 }}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      <div className="aspect-video bg-black relative">
+      {/* Image/Video area */}
+      <div className="aspect-video bg-vanta relative overflow-hidden">
         {item.previewUrl ? (
           <video
             ref={videoRef}
@@ -99,27 +113,48 @@ function MediaCard({ item }: { item: MediaItem }) {
             muted
             loop
             playsInline
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover transition-all duration-500 group-hover:scale-105 group-hover:brightness-75"
             poster={item.thumbnailUrls[0] || undefined}
           />
         ) : item.thumbnailUrls.length > 0 ? (
-          <img src={item.thumbnailUrls[0]} alt={item.title} className="w-full h-full object-cover" />
+          <img
+            src={item.thumbnailUrls[0]}
+            alt={item.title}
+            className="w-full h-full object-cover transition-all duration-500 group-hover:scale-105 group-hover:brightness-75"
+          />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-white/20">No Preview</div>
+          <div className="w-full h-full flex items-center justify-center">
+            <span className="font-heading text-foreground/10 text-xs tracking-[0.3em] uppercase">No Preview</span>
+          </div>
         )}
-      </div>
-      <div className="p-4">
-        <h3 className="font-semibold mb-1">{item.title}</h3>
-        {item.description && <p className="text-white/50 text-sm mb-3">{item.description}</p>}
-        <div className="flex items-center justify-between">
-          <span className="text-primary font-bold">{item.priceTokens} {brand.tokenName}</span>
-          <button
-            onClick={handlePurchase}
-            className="px-4 py-1.5 bg-primary text-black text-sm font-semibold rounded hover:brightness-110 transition"
-          >
-            {item.purchased ? "Watch" : "Unlock"}
-          </button>
+
+        {/* Price badge overlay */}
+        <div className="absolute top-3 right-3 bg-vanta/80 backdrop-blur-sm border border-gold px-3 py-1">
+          <span className="font-heading text-primary text-xs tracking-[0.1em]">
+            {item.priceTokens} {brand.tokenName}
+          </span>
         </div>
+
+        {/* Bottom gradient */}
+        <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-matte to-transparent" />
+      </div>
+
+      {/* Content */}
+      <div className="p-5">
+        <h3 className="font-heading text-foreground/90 text-sm tracking-[0.1em] uppercase mb-1">{item.title}</h3>
+        {item.description && (
+          <p className="text-foreground/35 text-xs leading-relaxed mb-4 line-clamp-2">{item.description}</p>
+        )}
+        <button
+          onClick={handlePurchase}
+          className={`w-full py-2.5 text-xs tracking-[0.15em] rounded transition-all duration-300 ${
+            item.purchased
+              ? "btn-crimson"
+              : "btn-crimson"
+          }`}
+        >
+          {item.purchased ? "Watch" : "Unlock Content"}
+        </button>
       </div>
     </motion.div>
   );

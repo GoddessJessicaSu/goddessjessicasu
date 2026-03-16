@@ -8,6 +8,7 @@ import { brand } from "@/lib/brand";
 interface UserInfo {
   id: number;
   email: string;
+  username: string | null;
   tokenBalance: number;
 }
 
@@ -68,7 +69,6 @@ export default function Dashboard() {
       const res = await api.post("/deposit/initiate", {
         tierId: selectedTier.id,
       });
-      // Redirect to NOWPayments hosted invoice page
       window.location.href = res.data.invoiceUrl;
     } catch (err: any) {
       setError(err.response?.data?.error || "Failed to initiate payment");
@@ -76,8 +76,14 @@ export default function Dashboard() {
     }
   };
 
-  if (loading) return <div className="p-12 text-white/50">Loading...</div>;
-  if (error) return <div className="p-12 text-red-400">{error}</div>;
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="font-heading text-primary/30 text-sm tracking-[0.3em] uppercase">Loading...</div>
+      </div>
+    );
+  }
+  if (error) return <div className="p-12 text-accent">{error}</div>;
   if (!user) return null;
 
   return (
@@ -85,104 +91,153 @@ export default function Dashboard() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="max-w-4xl mx-auto px-6 py-12"
+      transition={{ duration: 0.6 }}
+      className="max-w-5xl mx-auto px-8 py-16"
     >
-      <h1 className="text-4xl font-bold text-primary mb-2">Dashboard</h1>
-      <p className="text-white/50 mb-8">{user.email}</p>
-
-      {/* Balance */}
-      <div className="bg-white/5 rounded-lg p-6 border border-white/10 mb-8">
-        <div className="text-white/50 text-sm mb-1">Your Balance</div>
-        <div className="text-4xl font-bold text-primary">
-          {user.tokenBalance.toLocaleString()} <span className="text-lg">{brand.tokenName}</span>
-        </div>
+      {/* Header */}
+      <div className="mb-12">
+        <p className="font-heading text-primary/50 text-xs tracking-[0.4em] uppercase mb-4">Private Quarters</p>
+        <h1 className="font-heading text-4xl md:text-5xl text-gold-shimmer mb-3">Dashboard</h1>
+        <p className="text-foreground/30 text-sm">{user.username || user.email}</p>
+        <div className="w-16 h-px bg-primary/30 mt-6" />
       </div>
 
-      {/* Deposit — Tier Selection */}
-      <div className="bg-white/5 rounded-lg p-6 border border-white/10 mb-8">
-        <h2 className="text-xl font-semibold mb-4">Buy {brand.tokenName}</h2>
+      {/* Balance Card */}
+      <motion.div
+        className="card-luxury rounded-lg p-8 mb-8 relative overflow-hidden"
+        initial={{ y: 20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.1 }}
+      >
+        {/* Subtle gold radial behind the number */}
+        <div className="absolute top-0 right-0 w-64 h-64 bg-radial-[ellipse] from-primary/5 to-transparent" />
 
-        {/* Select a Package */}
-        <div className="mb-6">
-          <div className="text-white/50 text-sm mb-2">Select a Package</div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {tiers.map((tier) => (
-              <button
-                key={tier.id}
-                onClick={() => setSelectedTier(tier)}
-                className={`flex flex-col items-center p-4 rounded-lg border transition ${
-                  selectedTier?.id === tier.id
-                    ? "border-primary bg-primary/10 text-primary"
-                    : "border-white/10 bg-black/30 text-white/70 hover:border-white/30"
-                }`}
-              >
-                <span className="text-lg font-bold">${tier.priceUsd}</span>
-                <span className="text-sm mt-1">{tier.tokenAmount.toLocaleString()} {brand.tokenName}</span>
-              </button>
-            ))}
+        <div className="relative">
+          <p className="font-heading text-foreground/40 text-xs tracking-[0.3em] uppercase mb-4">Your Balance</p>
+          <div className="flex items-baseline gap-4">
+            <span className="font-heading text-6xl md:text-7xl text-gold-shimmer leading-none">
+              {user.tokenBalance.toLocaleString()}
+            </span>
+            <span className="font-heading text-primary/50 text-lg tracking-[0.2em] uppercase">{brand.tokenName}</span>
           </div>
-          {tiers.length === 0 && <p className="text-white/40 text-sm">No packages available.</p>}
         </div>
+      </motion.div>
 
-        {/* Buy Button */}
+      {/* Buy Tokens */}
+      <motion.div
+        className="card-luxury rounded-lg p-8 mb-8"
+        initial={{ y: 20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.2 }}
+      >
+        <p className="font-heading text-foreground/40 text-xs tracking-[0.3em] uppercase mb-2">Acquire</p>
+        <h2 className="font-heading text-xl text-primary tracking-[0.1em] mb-6">
+          Buy {brand.tokenName}
+        </h2>
+
+        {/* Tier Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+          {tiers.map((tier) => (
+            <button
+              key={tier.id}
+              onClick={() => setSelectedTier(tier)}
+              className={`group relative flex flex-col items-center p-6 rounded-lg border transition-all duration-300 ${
+                selectedTier?.id === tier.id
+                  ? "border-primary bg-primary/8 glow-gold"
+                  : "border-gold bg-vanta/50 hover:border-primary/50"
+              }`}
+            >
+              <span className="font-heading text-2xl text-foreground/90 mb-1">${tier.priceUsd}</span>
+              <span className="text-primary/60 text-xs tracking-[0.1em]">
+                {tier.tokenAmount.toLocaleString()} {brand.tokenName}
+              </span>
+            </button>
+          ))}
+        </div>
+        {tiers.length === 0 && (
+          <p className="text-foreground/30 text-sm font-heading tracking-[0.1em]">No packages available.</p>
+        )}
+
+        {/* Selected Tier Confirmation */}
         {selectedTier && (
-          <div className="bg-black/50 rounded-lg p-4 border border-white/10 space-y-3">
-            <div className="flex items-center justify-between">
+          <motion.div
+            className="bg-vanta/80 rounded-lg p-6 border border-gold"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <div className="flex items-center justify-between mb-6">
               <div>
-                <div className="text-white/50 text-sm">You&apos;ll receive:</div>
-                <div className="text-2xl font-bold text-primary">
-                  {selectedTier.tokenAmount.toLocaleString()} {brand.tokenName}
-                </div>
+                <p className="text-foreground/35 text-xs tracking-[0.15em] uppercase mb-1">You&apos;ll receive</p>
+                <span className="font-heading text-3xl text-gold-shimmer">
+                  {selectedTier.tokenAmount.toLocaleString()} <span className="text-lg">{brand.tokenName}</span>
+                </span>
               </div>
               <div className="text-right">
-                <div className="text-white/50 text-sm">Price:</div>
-                <div className="text-2xl font-bold">${selectedTier.priceUsd}</div>
+                <p className="text-foreground/35 text-xs tracking-[0.15em] uppercase mb-1">Price</p>
+                <span className="font-heading text-3xl text-foreground/90">${selectedTier.priceUsd}</span>
               </div>
             </div>
-            <p className="text-white/40 text-sm">
+            <p className="text-foreground/30 text-xs mb-6 leading-relaxed">
               You&apos;ll be redirected to our secure payment processor where you can pay with any cryptocurrency.
             </p>
             <button
               onClick={initiateDeposit}
               disabled={depositPending}
-              className={`w-full px-6 py-3 font-semibold rounded transition ${
+              className={`w-full py-4 text-sm tracking-[0.2em] rounded transition-all duration-300 ${
                 depositPending
-                  ? "bg-white/20 text-white/40 cursor-not-allowed"
-                  : "bg-primary text-black hover:brightness-110"
+                  ? "bg-foreground/10 text-foreground/30 cursor-not-allowed font-heading uppercase"
+                  : "btn-crimson"
               }`}
             >
-              {depositPending ? "Redirecting..." : "Pay with Crypto"}
+              {depositPending ? "Redirecting..." : "Acquire"}
             </button>
-          </div>
+          </motion.div>
         )}
-      </div>
+      </motion.div>
 
       {/* Vault */}
-      <div className="bg-white/5 rounded-lg p-6 border border-white/10">
-        <h2 className="text-xl font-semibold mb-4">Your Vault</h2>
+      <motion.div
+        className="card-luxury rounded-lg p-8"
+        initial={{ y: 20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.3 }}
+      >
+        <p className="font-heading text-foreground/40 text-xs tracking-[0.3em] uppercase mb-2">Unlocked</p>
+        <h2 className="font-heading text-xl text-primary tracking-[0.1em] mb-6">Your Vault</h2>
+
         {vault.length === 0 ? (
-          <p className="text-white/50">No purchased content yet.</p>
+          <div className="py-8 text-center">
+            <p className="text-foreground/25 text-sm font-heading tracking-[0.1em]">No purchased content yet</p>
+          </div>
         ) : (
           <div className="space-y-3">
-            {vault.map((item) => (
-              <div key={item.id} className="flex items-center justify-between bg-black/50 rounded p-3 border border-white/5">
+            {vault.map((item, i) => (
+              <motion.div
+                key={item.id}
+                className="flex items-center justify-between bg-vanta/60 rounded-lg p-4 border border-gold hover:border-primary/50 transition-all duration-300 group"
+                initial={{ x: -10, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                transition={{ delay: 0.35 + i * 0.05 }}
+              >
                 <div>
-                  <div className="font-medium">{item.title}</div>
-                  <div className="text-white/40 text-sm">{item.tokensSpent} {brand.tokenName}</div>
+                  <p className="font-heading text-foreground/80 text-sm tracking-[0.05em] uppercase">{item.title}</p>
+                  <p className="text-primary/40 text-xs mt-1">
+                    {item.tokensSpent} {brand.tokenName} &bull; {new Date(item.purchasedAt).toLocaleDateString()}
+                  </p>
                 </div>
                 <a
                   href={item.streamUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-4 py-1.5 bg-primary text-black text-sm font-semibold rounded hover:brightness-110 transition"
+                  className="btn-crimson px-5 py-2 text-xs tracking-[0.15em] rounded"
                 >
                   Watch
                 </a>
-              </div>
+              </motion.div>
             ))}
           </div>
         )}
-      </div>
+      </motion.div>
     </motion.div>
   );
 }
