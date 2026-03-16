@@ -1,0 +1,137 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             Int           @id @default(autoincrement())
+  email          String        @unique
+  isAdmin        Boolean       @default(false)
+  tokenBalance   Float         @default(0)
+
+  btcAddress     String        @unique
+  ethAddress     String        @unique
+  tronAddress    String        @unique
+
+  createdAt      DateTime      @default(now())
+
+  magicLinks     MagicLink[]
+  transactions   Transaction[]
+  purchases      Purchase[]
+}
+
+model MagicLink {
+  id         String    @id @default(cuid())
+  email      String
+  token      String    @unique
+  usedAt     DateTime?
+  expiresAt  DateTime
+  createdAt  DateTime  @default(now())
+
+  user       User?     @relation(fields: [userId], references: [id])
+  userId     Int?
+}
+
+enum Currency {
+  BTC
+  ETH
+  USDT_TRC20
+}
+
+enum TxStatus {
+  PENDING
+  CONFIRMED
+  EXPIRED
+}
+
+model Transaction {
+  id             String     @id @default(cuid())
+  userId         Int
+  user           User       @relation(fields: [userId], references: [id])
+
+  currency       Currency
+  depositAddress String
+  amountCrypto   Float?
+  amountTokens   Float?
+  status         TxStatus   @default(PENDING)
+  txHash         String?
+
+  tierId         String?
+  tier           TokenTier? @relation(fields: [tierId], references: [id])
+  expectedTokens Float?
+
+  createdAt      DateTime   @default(now())
+  confirmedAt    DateTime?
+  expiresAt      DateTime
+
+  @@index([status])
+  @@index([userId])
+}
+
+model TokenTier {
+  id           String        @id @default(cuid())
+  priceUsd     Float
+  tokenAmount  Float
+  isActive     Boolean       @default(true)
+  sortOrder    Int           @default(0)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  transactions Transaction[]
+}
+
+model Media {
+  id            String       @id @default(cuid())
+  title         String
+  description   String?
+  priceTokens   Float
+  minioKey      String
+  previewKey    String?
+  mimeType      String
+  durationSecs  Int?
+  isPublished   Boolean      @default(false)
+  createdAt     DateTime     @default(now())
+
+  purchases     Purchase[]
+  assets        MediaAsset[]
+}
+
+model MediaAsset {
+  id        String   @id @default(cuid())
+  mediaId   String
+  media     Media    @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+  objectKey String
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([mediaId])
+}
+
+model Purchase {
+  id           String   @id @default(cuid())
+  userId       Int
+  user         User     @relation(fields: [userId], references: [id])
+  mediaId      String
+  media        Media    @relation(fields: [mediaId], references: [id])
+  tokensSpent  Float
+  createdAt    DateTime @default(now())
+
+  @@unique([userId, mediaId])
+  @@index([userId])
+}
+
+model SiteConfig {
+  id                Int      @id @default(1)
+
+  rateUsdPerToken   Float    @default(0.10)
+  rateBtcPerToken   Float?
+  rateEthPerToken   Float?
+
+  bioText           String?
+  customVideoText   String?
+
+  updatedAt         DateTime @updatedAt
+}
