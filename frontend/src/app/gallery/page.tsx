@@ -291,7 +291,7 @@ function MediaCard({
         )}
         <button
           onClick={handlePurchase}
-          className="w-full py-2.5 text-xs tracking-[0.15em] rounded transition-all duration-300 btn-crimson mt-auto
+          className="w-full py-2.5 text-xs tracking-[0.15em] rounded transition-all duration-300 btn-crimson mt-auto"
         >
           {item.purchased ? "Watch" : "Unlock Content"}
         </button>
