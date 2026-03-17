@@ -29,8 +29,14 @@ export default function FileDropZone({
     [onFilesSelected]
   );
 
+  const onDropRejected = useCallback((rejections: any[]) => {
+    const msg = rejections[0]?.errors?.[0]?.message || "File rejected";
+    alert(msg);
+  }, []);
+
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
+    onDropRejected,
     accept,
     maxFiles,
     maxSize,

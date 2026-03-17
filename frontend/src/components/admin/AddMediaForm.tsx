@@ -226,8 +226,8 @@ export default function AddMediaForm({ onCreated }: AddMediaFormProps) {
           ) : (
             <FileDropZone
               label="Drag & drop the product file, or click to browse"
-              sublabel="Up to 5 GB"
-              maxSize={5 * 1024 * 1024 * 1024}
+              sublabel="Up to 10 GB"
+              maxSize={10 * 1024 * 1024 * 1024}
               onFilesSelected={(files) => setProductFile(files[0])}
             />
           )}
