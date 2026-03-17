@@ -21,9 +21,18 @@ export default function Gallery() {
   const [media, setMedia] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [lightbox, setLightbox] = useState<{ urls: string[]; index: number; title: string } | null>(null);
-  const [descModal, setDescModal] = useState<{ title: string; description: string } | null>(null);
-  const [successModal, setSuccessModal] = useState<{ title: string } | null>(null);
+  const [lightbox, setLightbox] = useState<{
+    urls: string[];
+    index: number;
+    title: string;
+  } | null>(null);
+  const [descModal, setDescModal] = useState<{
+    title: string;
+    description: string;
+  } | null>(null);
+  const [successModal, setSuccessModal] = useState<{ title: string } | null>(
+    null,
+  );
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -35,7 +44,8 @@ export default function Gallery() {
   }, []);
 
   const loadGallery = () => {
-    api.get("/gallery")
+    api
+      .get("/gallery")
       .then((res) => setMedia(res.data.media))
       .catch((err) => {
         if (err.response?.status === 401 || err.response?.status === 403) {
@@ -66,25 +76,42 @@ export default function Gallery() {
     >
       {/* Header */}
       <div className="mb-16">
-        <p className="font-heading text-primary/50 text-xs tracking-[0.4em] uppercase mb-4">The Collection</p>
-        <h1 className="font-heading text-4xl md:text-5xl text-gold-shimmer">Masterpieces</h1>
+        <p className="font-heading text-primary/50 text-xs tracking-[0.4em] uppercase mb-4">
+          The Collection
+        </p>
+        <h1 className="font-heading text-4xl md:text-5xl text-gold-shimmer">
+          Masterpieces
+        </h1>
         <div className="w-16 h-px bg-primary/30 mt-6" />
       </div>
 
       {loading ? (
         <div className="flex items-center justify-center py-32">
-          <div className="font-heading text-primary/30 text-sm tracking-[0.3em] uppercase">Loading...</div>
+          <div className="font-heading text-primary/30 text-sm tracking-[0.3em] uppercase">
+            Loading...
+          </div>
         </div>
       ) : error ? (
         <div className="text-accent text-center py-32">{error}</div>
       ) : media.length === 0 ? (
         <div className="text-center py-32">
-          <p className="font-heading text-foreground/30 text-sm tracking-[0.2em] uppercase">No content available yet</p>
+          <p className="font-heading text-foreground/30 text-sm tracking-[0.2em] uppercase">
+            No content available yet
+          </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
           {media.map((item, i) => (
-            <MediaCard key={item.id} item={item} index={i} onImageClick={openLightbox} onReadMore={(title, desc) => setDescModal({ title, description: desc })} onPurchaseSuccess={handlePurchaseSuccess} />
+            <MediaCard
+              key={item.id}
+              item={item}
+              index={i}
+              onImageClick={openLightbox}
+              onReadMore={(title, desc) =>
+                setDescModal({ title, description: desc })
+              }
+              onPurchaseSuccess={handlePurchaseSuccess}
+            />
           ))}
         </div>
       )}
@@ -189,7 +216,7 @@ function MediaCard({
     >
       {/* Main image/video */}
       <div
-        className="aspect-video bg-vanta relative overflow-hidden cursor-pointer"
+        className="aspect-[9/16] bg-vanta relative overflow-hidden cursor-pointer"
         onClick={() => {
           if (item.thumbnailUrls.length > 0) {
             onImageClick(item.thumbnailUrls, 0, item.title);
@@ -214,30 +241,48 @@ function MediaCard({
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <span className="font-heading text-foreground/10 text-xs tracking-[0.3em] uppercase">No Preview</span>
+            <span className="font-heading text-foreground/10 text-xs tracking-[0.3em] uppercase">
+              No Preview
+            </span>
           </div>
         )}
 
         {/* Price / Owned badge */}
-        <div className={`absolute top-3 right-3 backdrop-blur-sm px-3 py-1 ${
-          item.purchased
-            ? "bg-emerald-950/80 border border-emerald-500/40"
-            : "bg-vanta/80 border border-gold"
-        }`}>
-          <span className={`font-heading text-xs tracking-[0.1em] ${
-            item.purchased ? "text-emerald-400" : "text-primary"
-          }`}>
-            {item.purchased ? "Owned" : `${item.priceTokens} ${brand.tokenName}`}
+        <div
+          className={`absolute top-3 right-3 backdrop-blur-sm px-3 h-7 flex items-center justify-center min-w-[7rem] ${
+            item.purchased
+              ? "bg-emerald-950/80 border border-emerald-500/40"
+              : "bg-vanta/80 border border-gold"
+          }`}
+        >
+          <span
+            className={`font-heading text-xs tracking-[0.1em] ${
+              item.purchased ? "text-emerald-400" : "text-primary"
+            }`}
+          >
+            {item.purchased
+              ? "Owned"
+              : `${item.priceTokens} ${brand.tokenName}`}
           </span>
         </div>
 
         {/* Image count badge */}
         {hasMultiple && (
-          <div className="absolute top-3 left-3 bg-vanta/80 backdrop-blur-sm border border-gold/50 px-2.5 py-1 flex items-center gap-1.5">
-            <svg className="w-3 h-3 text-primary/70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21z" />
+          <div className="absolute top-3 left-3 bg-vanta/80 backdrop-blur-sm border border-gold/50 px-3 h-7 flex items-center gap-1.5">
+            <svg
+              className="w-3 h-3 text-primary/70"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={1.5}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21z"
+              />
             </svg>
-            <span className="font-heading text-foreground/50 text-[10px] tracking-[0.1em]">
+            <span className="font-heading text-foreground/50 text-xs tracking-[0.1em]">
               {item.thumbnailUrls.length}
             </span>
           </div>
@@ -251,11 +296,16 @@ function MediaCard({
       {hasMultiple && (
         <div className="relative">
           <button
-            onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              setExpanded(!expanded);
+            }}
             className="w-full flex items-center justify-center gap-2 py-2 bg-vanta/80 border-b border-gold/30 hover:bg-vanta transition-colors duration-300"
           >
             <span className="text-foreground/30 text-[10px] tracking-[0.2em] uppercase font-heading">
-              {expanded ? "Hide previews" : `View all ${item.thumbnailUrls.length} photos`}
+              {expanded
+                ? "Hide previews"
+                : `View all ${item.thumbnailUrls.length} photos`}
             </span>
             <motion.svg
               className="w-3 h-3 text-primary/40"
@@ -266,7 +316,11 @@ function MediaCard({
               animate={{ rotate: expanded ? 180 : 0 }}
               transition={{ duration: 0.3 }}
             >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M19 9l-7 7-7-7"
+              />
             </motion.svg>
           </button>
 
@@ -309,7 +363,9 @@ function MediaCard({
 
       {/* Content */}
       <div className="p-5 flex flex-col flex-1">
-        <h3 className="font-heading text-foreground/90 text-sm tracking-[0.1em] uppercase mb-1">{item.title}</h3>
+        <h3 className="font-heading text-foreground/90 text-sm tracking-[0.1em] uppercase mb-1">
+          {item.title}
+        </h3>
         {item.description && (
           <div className="mb-4">
             <p
@@ -330,7 +386,7 @@ function MediaCard({
         )}
         {item.purchased ? (
           <div className="w-full py-2.5 text-xs tracking-[0.2em] rounded text-center mt-auto bg-emerald-950/40 border border-emerald-500/20 text-emerald-400/60 font-heading uppercase cursor-default">
-            Sent to Email
+            Owned
           </div>
         ) : (
           <button
@@ -362,15 +418,18 @@ function Lightbox({
   const [index, setIndex] = useState(initialIndex);
   const [direction, setDirection] = useState(0);
 
-  const go = useCallback((dir: number) => {
-    setDirection(dir);
-    setIndex((prev) => {
-      const next = prev + dir;
-      if (next < 0) return urls.length - 1;
-      if (next >= urls.length) return 0;
-      return next;
-    });
-  }, [urls.length]);
+  const go = useCallback(
+    (dir: number) => {
+      setDirection(dir);
+      setIndex((prev) => {
+        const next = prev + dir;
+        if (next < 0) return urls.length - 1;
+        if (next >= urls.length) return 0;
+        return next;
+      });
+    },
+    [urls.length],
+  );
 
   // Keyboard navigation
   useEffect(() => {
@@ -398,21 +457,36 @@ function Lightbox({
       transition={{ duration: 0.3 }}
     >
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/90 backdrop-blur-md" onClick={onClose} />
+      <div
+        className="absolute inset-0 bg-black/90 backdrop-blur-md"
+        onClick={onClose}
+      />
 
       {/* Close button */}
       <button
         onClick={onClose}
         className="absolute top-6 right-6 z-10 w-10 h-10 flex items-center justify-center rounded-full border border-gold/30 bg-vanta/60 text-foreground/50 hover:text-foreground hover:border-primary/50 transition-all duration-300"
       >
-        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+        <svg
+          className="w-5 h-5"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={1.5}
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M6 18L18 6M6 6l12 12"
+          />
         </svg>
       </button>
 
       {/* Title + counter */}
       <div className="absolute top-6 left-6 z-10">
-        <p className="font-heading text-foreground/60 text-sm tracking-[0.1em] uppercase">{title}</p>
+        <p className="font-heading text-foreground/60 text-sm tracking-[0.1em] uppercase">
+          {title}
+        </p>
         <p className="text-foreground/30 text-xs mt-1">
           {index + 1} / {urls.length}
         </p>
@@ -441,19 +515,45 @@ function Lightbox({
       {urls.length > 1 && (
         <>
           <button
-            onClick={(e) => { e.stopPropagation(); go(-1); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              go(-1);
+            }}
             className="absolute left-4 md:left-8 z-10 w-12 h-12 flex items-center justify-center rounded-full border border-gold/20 bg-vanta/40 text-foreground/40 hover:text-primary hover:border-primary/40 hover:bg-vanta/70 transition-all duration-300"
           >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M15 19l-7-7 7-7"
+              />
             </svg>
           </button>
           <button
-            onClick={(e) => { e.stopPropagation(); go(1); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              go(1);
+            }}
             className="absolute right-4 md:right-8 z-10 w-12 h-12 flex items-center justify-center rounded-full border border-gold/20 bg-vanta/40 text-foreground/40 hover:text-primary hover:border-primary/40 hover:bg-vanta/70 transition-all duration-300"
           >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M9 5l7 7-7 7"
+              />
             </svg>
           </button>
         </>
@@ -501,7 +601,13 @@ function renderBoldText(text: string) {
   });
 }
 
-function DownloadSentModal({ title, onClose }: { title: string; onClose: () => void }) {
+function DownloadSentModal({
+  title,
+  onClose,
+}: {
+  title: string;
+  onClose: () => void;
+}) {
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -519,7 +625,10 @@ function DownloadSentModal({ title, onClose }: { title: string; onClose: () => v
       transition={{ duration: 0.3 }}
     >
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/85 backdrop-blur-md" onClick={onClose} />
+      <div
+        className="absolute inset-0 bg-black/85 backdrop-blur-md"
+        onClick={onClose}
+      />
 
       {/* Modal */}
       <motion.div
@@ -532,8 +641,18 @@ function DownloadSentModal({ title, onClose }: { title: string; onClose: () => v
         <div className="card-luxury rounded-lg p-10">
           {/* Envelope icon */}
           <div className="w-16 h-16 mx-auto mb-6 rounded-full border-2 border-primary/40 flex items-center justify-center">
-            <svg className="w-7 h-7 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+            <svg
+              className="w-7 h-7 text-primary"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={1.5}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"
+              />
             </svg>
           </div>
 
@@ -552,7 +671,8 @@ function DownloadSentModal({ title, onClose }: { title: string; onClose: () => v
             {title}
           </p>
           <p className="text-foreground/40 text-sm leading-relaxed mb-8">
-            has been sent to your email. The link is valid for <span className="text-foreground/70 font-medium">24 hours</span>.
+            has been sent to your email. The link is valid for{" "}
+            <span className="text-foreground/70 font-medium">24 hours</span>.
           </p>
 
           <button
@@ -595,7 +715,10 @@ function DescriptionModal({
       transition={{ duration: 0.3 }}
     >
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/85 backdrop-blur-md" onClick={onClose} />
+      <div
+        className="absolute inset-0 bg-black/85 backdrop-blur-md"
+        onClick={onClose}
+      />
 
       {/* Modal */}
       <motion.div
@@ -608,15 +731,29 @@ function DescriptionModal({
         {/* Header */}
         <div className="flex items-start justify-between p-6 pb-4 border-b border-gold/15">
           <div>
-            <p className="font-heading text-primary/40 text-[10px] tracking-[0.4em] uppercase mb-2">About</p>
-            <h3 className="font-heading text-foreground/90 text-lg tracking-[0.08em] uppercase">{title}</h3>
+            <p className="font-heading text-primary/40 text-[10px] tracking-[0.4em] uppercase mb-2">
+              About
+            </p>
+            <h3 className="font-heading text-foreground/90 text-lg tracking-[0.08em] uppercase">
+              {title}
+            </h3>
           </div>
           <button
             onClick={onClose}
             className="mt-1 w-8 h-8 flex items-center justify-center rounded-full border border-gold/20 text-foreground/30 hover:text-foreground/70 hover:border-primary/40 transition-all duration-300"
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={1.5}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         </div>

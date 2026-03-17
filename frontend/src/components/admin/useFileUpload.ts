@@ -122,9 +122,37 @@ export function useFileUpload() {
     updateItem(itemIndex, { status: "done", progress: 100 });
   };
 
+  const uploadImageViaApi = async (
+    assetId: string,
+    file: File,
+    itemIndex: number,
+    controller: AbortController
+  ) => {
+    updateItem(itemIndex, { status: "uploading" });
+    try {
+      const buffer = await file.arrayBuffer();
+      await api.put(`/admin/media/assets/${assetId}/upload`, buffer, {
+        headers: { "Content-Type": file.type || "image/jpeg" },
+        signal: controller.signal,
+        onUploadProgress: (e) => {
+          if (e.total) {
+            updateItem(itemIndex, {
+              progress: Math.round((e.loaded / e.total) * 100),
+            });
+          }
+        },
+      });
+      updateItem(itemIndex, { status: "done", progress: 100 });
+    } catch (err: any) {
+      if (axios.isCancel(err)) return;
+      updateItem(itemIndex, { status: "error" });
+      throw err;
+    }
+  };
+
   const uploadFiles = useCallback(
     async (tasks: {
-      previewImages: { file: File; url: string }[];
+      previewImages: { file: File; assetId: string }[];
       previewClip?: { file: File; url: string };
       product:
         | { mode: "single"; file: File; url: string }
@@ -155,10 +183,10 @@ export function useFileUpload() {
       try {
         let idx = 0;
 
-        // Upload preview images
+        // Upload preview images via backend (resized server-side)
         for (const img of tasks.previewImages) {
           if (cancelledRef.current) break;
-          await uploadSingleFile(img.url, img.file, idx, controller);
+          await uploadImageViaApi(img.assetId, img.file, idx, controller);
           idx++;
         }
 

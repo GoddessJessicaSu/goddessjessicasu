@@ -79,7 +79,9 @@ export default function Dashboard() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="font-heading text-primary/30 text-sm tracking-[0.3em] uppercase">Loading...</div>
+        <div className="font-heading text-primary/30 text-sm tracking-[0.3em] uppercase">
+          Loading...
+        </div>
       </div>
     );
   }
@@ -96,9 +98,15 @@ export default function Dashboard() {
     >
       {/* Header */}
       <div className="mb-12">
-        <p className="font-heading text-primary/50 text-xs tracking-[0.4em] uppercase mb-4">Private Quarters</p>
-        <h1 className="font-heading text-4xl md:text-5xl text-gold-shimmer mb-3">Dashboard</h1>
-        <p className="text-foreground/30 text-sm">{user.username || user.email}</p>
+        <p className="font-heading text-primary/50 text-xs tracking-[0.4em] uppercase mb-4">
+          Private Quarters
+        </p>
+        <h1 className="font-heading text-4xl md:text-5xl text-gold-shimmer mb-3">
+          Dashboard
+        </h1>
+        <p className="text-foreground/30 text-sm">
+          {user.username || user.email}
+        </p>
         <div className="w-16 h-px bg-primary/30 mt-6" />
       </div>
 
@@ -113,12 +121,16 @@ export default function Dashboard() {
         <div className="absolute top-0 right-0 w-64 h-64 bg-radial-[ellipse] from-primary/5 to-transparent" />
 
         <div className="relative">
-          <p className="font-heading text-foreground/40 text-xs tracking-[0.3em] uppercase mb-4">Your Balance</p>
+          <p className="font-heading text-foreground/40 text-xs tracking-[0.3em] uppercase mb-4">
+            Your Balance
+          </p>
           <div className="flex items-baseline gap-4">
             <span className="font-heading text-6xl md:text-7xl text-gold-shimmer leading-none">
               {user.tokenBalance.toLocaleString()}
             </span>
-            <span className="font-heading text-primary/50 text-lg tracking-[0.2em] uppercase">{brand.tokenName}</span>
+            <span className="font-heading text-primary/50 text-lg tracking-[0.2em] uppercase">
+              {brand.tokenName}
+            </span>
           </div>
         </div>
       </motion.div>
@@ -130,21 +142,46 @@ export default function Dashboard() {
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.15 }}
       >
-        <p className="font-heading text-primary/50 text-xs tracking-[0.4em] uppercase mb-2">The Currency</p>
+        <p className="font-heading text-primary/50 text-xs tracking-[0.4em] uppercase mb-2">
+          The Currency
+        </p>
         <h2 className="font-heading text-xl text-primary tracking-[0.1em] mb-6">
           What is {brand.tokenName}?
         </h2>
         <div className="space-y-4 text-foreground/45 text-sm leading-[1.9]">
           <p>
-            Beneath my sharp heels, every crush is an act of art. To enter my world, you must collect my <strong className="text-primary font-semibold">{brand.tokenName}</strong>. Think of each token as a <strong className="text-foreground/70">small fragment of the power</strong> I leave behind on the floor after I am done.
+            Beneath my sharp heels, every crush is an act of art. To enter my
+            world, you must collect my{" "}
+            <strong className="text-primary font-semibold">
+              {brand.tokenName}
+            </strong>
+            . Think of each token as a{" "}
+            <strong className="text-foreground/70">
+              small fragment of the power
+            </strong>{" "}
+            I leave behind on the floor after I am done.
           </p>
           <p>
-            Use your <strong className="text-primary font-semibold">{brand.tokenName}</strong> to unlock my <strong className="text-foreground/70">private library of destruction</strong>. As you offer these fragments to me, you mend the shattered images of my work. Collect enough, and the <strong className="text-foreground/70">full elegance of the crush</strong> will finally be yours to witness.
+            Use your{" "}
+            <strong className="text-primary font-semibold">
+              {brand.tokenName}
+            </strong>{" "}
+            to unlock my{" "}
+            <strong className="text-foreground/70">
+              private library of destruction
+            </strong>
+            . As you offer these fragments to me, you mend the shattered images
+            of my work. Collect enough, and the{" "}
+            <strong className="text-foreground/70">
+              full elegance of the crush
+            </strong>{" "}
+            will finally be yours to witness.
           </p>
         </div>
         <div className="mt-6 pt-6 border-t border-gold/10 text-center">
           <p className="font-heading text-primary/60 text-sm tracking-[0.15em] italic">
-            &ldquo;Gather my shards. Restore the beauty. Receive my {brand.tokenName}.&rdquo;
+            &ldquo;Gather my shards. Restore the beauty. Receive my{" "}
+            {brand.tokenName}.&rdquo;
           </p>
         </div>
       </motion.div>
@@ -156,7 +193,9 @@ export default function Dashboard() {
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.2 }}
       >
-        <p className="font-heading text-foreground/40 text-xs tracking-[0.3em] uppercase mb-2">Acquire</p>
+        <p className="font-heading text-foreground/40 text-xs tracking-[0.3em] uppercase mb-2">
+          Acquire
+        </p>
         <h2 className="font-heading text-xl text-primary tracking-[0.1em] mb-6">
           Buy {brand.tokenName}
         </h2>
@@ -165,7 +204,9 @@ export default function Dashboard() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
           {tiers.map((tier) => {
             const hasPromo = tier.promoTokenAmount != null;
-            const displayAmount = hasPromo ? tier.promoTokenAmount! : tier.tokenAmount;
+            const displayAmount = hasPromo
+              ? tier.promoTokenAmount!
+              : tier.tokenAmount;
             return (
               <button
                 key={tier.id}
@@ -181,7 +222,9 @@ export default function Dashboard() {
                     Promo
                   </span>
                 )}
-                <span className="font-heading text-2xl text-foreground/90 mb-1">${tier.priceUsd}</span>
+                <span className="font-heading text-2xl text-foreground/90 mb-1">
+                  ${tier.priceUsd}
+                </span>
                 {hasPromo ? (
                   <span className="text-xs tracking-[0.1em] flex flex-col items-center gap-0.5">
                     <span className="line-through text-accent/60 text-[10px] decoration-accent/80">
@@ -201,7 +244,9 @@ export default function Dashboard() {
           })}
         </div>
         {tiers.length === 0 && (
-          <p className="text-foreground/30 text-sm font-heading tracking-[0.1em]">No packages available.</p>
+          <p className="text-foreground/30 text-sm font-heading tracking-[0.1em]">
+            No packages available.
+          </p>
         )}
 
         {/* Selected Tier Confirmation */}
@@ -213,29 +258,38 @@ export default function Dashboard() {
           >
             <div className="flex items-center justify-between mb-6">
               <div>
-                <p className="text-foreground/35 text-xs tracking-[0.15em] uppercase mb-1">You&apos;ll receive</p>
+                <p className="text-foreground/35 text-xs tracking-[0.15em] uppercase mb-1">
+                  You&apos;ll receive
+                </p>
                 {selectedTier.promoTokenAmount != null ? (
                   <div>
                     <span className="font-heading text-lg text-accent/50 line-through decoration-accent/60 mr-2">
                       {selectedTier.tokenAmount.toLocaleString()}
                     </span>
                     <span className="font-heading text-3xl text-gold-shimmer">
-                      {selectedTier.promoTokenAmount.toLocaleString()} <span className="text-lg">{brand.tokenName}</span>
+                      {selectedTier.promoTokenAmount.toLocaleString()}{" "}
+                      <span className="text-lg">{brand.tokenName}</span>
                     </span>
                   </div>
                 ) : (
                   <span className="font-heading text-3xl text-gold-shimmer">
-                    {selectedTier.tokenAmount.toLocaleString()} <span className="text-lg">{brand.tokenName}</span>
+                    {selectedTier.tokenAmount.toLocaleString()}{" "}
+                    <span className="text-lg">{brand.tokenName}</span>
                   </span>
                 )}
               </div>
               <div className="text-right">
-                <p className="text-foreground/35 text-xs tracking-[0.15em] uppercase mb-1">Price</p>
-                <span className="font-heading text-3xl text-foreground/90">${selectedTier.priceUsd}</span>
+                <p className="text-foreground/35 text-xs tracking-[0.15em] uppercase mb-1">
+                  Price
+                </p>
+                <span className="font-heading text-3xl text-foreground/90">
+                  ${selectedTier.priceUsd}
+                </span>
               </div>
             </div>
             <p className="text-foreground/30 text-xs mb-6 leading-relaxed">
-              You&apos;ll be redirected to our secure payment processor where you can pay with any cryptocurrency.
+              You&apos;ll be redirected to our secure payment processor where
+              you can pay with any cryptocurrency.
             </p>
             <button
               onClick={initiateDeposit}
@@ -259,12 +313,18 @@ export default function Dashboard() {
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.3 }}
       >
-        <p className="font-heading text-foreground/40 text-xs tracking-[0.3em] uppercase mb-2">Unlocked</p>
-        <h2 className="font-heading text-xl text-primary tracking-[0.1em] mb-6">Your Vault</h2>
+        <p className="font-heading text-foreground/40 text-xs tracking-[0.3em] uppercase mb-2">
+          Unlocked
+        </p>
+        <h2 className="font-heading text-xl text-primary tracking-[0.1em] mb-6">
+          Your Vault
+        </h2>
 
         {vault.length === 0 ? (
           <div className="py-8 text-center">
-            <p className="text-foreground/25 text-sm font-heading tracking-[0.1em]">No purchased content yet</p>
+            <p className="text-foreground/25 text-sm font-heading tracking-[0.1em]">
+              No purchased content yet
+            </p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -277,13 +337,16 @@ export default function Dashboard() {
                 transition={{ delay: 0.35 + i * 0.05 }}
               >
                 <div>
-                  <p className="font-heading text-foreground/80 text-sm tracking-[0.05em] uppercase">{item.title}</p>
+                  <p className="font-heading text-foreground/80 text-sm tracking-[0.05em] uppercase">
+                    {item.title}
+                  </p>
                   <p className="text-primary/40 text-xs mt-1">
-                    {item.tokensSpent} {brand.tokenName} &bull; {new Date(item.purchasedAt).toLocaleDateString()}
+                    {item.tokensSpent} {brand.tokenName} &bull;{" "}
+                    {new Date(item.purchasedAt).toLocaleDateString()}
                   </p>
                 </div>
                 <span className="bg-emerald-950/40 border border-emerald-500/20 text-emerald-400/60 font-heading uppercase px-5 py-2 text-xs tracking-[0.2em] rounded">
-                  Sent to Email
+                  Owned
                 </span>
               </motion.div>
             ))}

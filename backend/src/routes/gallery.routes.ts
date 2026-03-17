@@ -9,7 +9,7 @@ export const galleryRoutes = Router();
 galleryRoutes.get('/', authMiddleware, asyncHandler(async (req: AuthRequest, res) => {
   const media = await prisma.media.findMany({
     where: { isPublished: true },
-    orderBy: { createdAt: 'desc' },
+    orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
     include: { assets: { orderBy: { sortOrder: 'asc' } } },
   });
 

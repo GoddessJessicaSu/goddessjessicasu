@@ -9,6 +9,7 @@ import { authRoutes } from './routes/auth.routes';
 import { depositRoutes } from './routes/deposit.routes';
 import { purchaseRoutes } from './routes/purchase.routes';
 import { adminRoutes } from './routes/admin.routes';
+import { adminUploadRoutes } from './routes/admin-upload.routes';
 import { galleryRoutes } from './routes/gallery.routes';
 import { webhookRoutes } from './routes/webhook.routes';
 import { ensureBuckets } from './services/minio.service';
@@ -19,6 +20,9 @@ app.use(cors());
 
 // Webhook route needs raw body for HMAC verification — mount before express.json()
 app.use('/api/webhooks', express.raw({ type: 'application/json' }), webhookRoutes);
+
+// Admin image upload needs raw body for Sharp processing — mount before express.json()
+app.use('/api/admin', express.raw({ type: ['image/*'], limit: '20mb' }), adminUploadRoutes);
 
 app.use(express.json());
 app.use(requestLogger);

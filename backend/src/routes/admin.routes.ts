@@ -4,6 +4,7 @@ import { authMiddleware } from '../middleware/auth';
 import { adminMiddleware } from '../middleware/admin';
 import {
   getUploadUrl,
+  getPresignedUrl,
   initiateMultipartUpload,
   getMultipartPartUrl,
   completeMultipartUpload,
@@ -78,16 +79,13 @@ adminRoutes.post('/media', asyncHandler(async (req, res) => {
     previewClipUpload = { url };
   }
 
-  // Preview image uploads
-  const previewImageUploads = await Promise.all(
-    media.assets.map(async (a) => ({
-      assetId: a.id,
-      url: await getUploadUrl('previewImages', a.objectKey),
-      sortOrder: a.sortOrder,
-    }))
-  );
+  // Preview image asset IDs (images are uploaded via /admin/media/assets/:assetId/upload)
+  const previewImageAssets = media.assets.map((a) => ({
+    assetId: a.id,
+    sortOrder: a.sortOrder,
+  }));
 
-  res.json({ media, productUpload, previewClipUpload, previewImageUploads });
+  res.json({ media, productUpload, previewClipUpload, previewImageAssets });
 }));
 
 // Complete multipart upload
@@ -136,8 +134,11 @@ adminRoutes.post('/media/:id/abort-multipart', asyncHandler(async (req, res) => 
 // List all media
 adminRoutes.get('/media', asyncHandler(async (_req, res) => {
   const media = await prisma.media.findMany({
-    orderBy: { createdAt: 'desc' },
-    include: { _count: { select: { assets: true } } },
+    orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
+    include: {
+      _count: { select: { assets: true } },
+      assets: { orderBy: { sortOrder: 'asc' } },
+    },
   });
   res.json({ media });
 }));
@@ -185,6 +186,147 @@ adminRoutes.delete('/media/:id', asyncHandler(async (req, res) => {
   // Delete from DB (cascades to assets)
   await prisma.media.delete({ where: { id: media.id } });
   res.json({ message: 'Deleted' });
+}));
+
+// Reorder media (gallery order)
+adminRoutes.put('/media-order', asyncHandler(async (req, res) => {
+  const { order } = req.body;
+  if (!Array.isArray(order)) {
+    res.status(400).json({ error: 'order[] (array of media IDs) required' });
+    return;
+  }
+
+  await prisma.$transaction(
+    order.map((id: string, i: number) =>
+      prisma.media.update({
+        where: { id },
+        data: { sortOrder: i },
+      })
+    )
+  );
+
+  res.json({ message: 'Reordered' });
+}));
+
+// Get single media with asset preview URLs
+adminRoutes.get('/media/:id', asyncHandler(async (req, res) => {
+  const media = await prisma.media.findUnique({
+    where: { id: req.params.id as string },
+    include: { assets: { orderBy: { sortOrder: 'asc' } } },
+  });
+  if (!media) {
+    res.status(404).json({ error: 'Media not found' });
+    return;
+  }
+
+  const assets = await Promise.all(
+    media.assets.map(async (a) => ({
+      id: a.id,
+      objectKey: a.objectKey,
+      sortOrder: a.sortOrder,
+      url: await getPresignedUrl('previewImages', a.objectKey),
+    }))
+  );
+
+  res.json({ media: { ...media, assets } });
+}));
+
+// Delete a single preview image asset
+adminRoutes.delete('/media/:id/assets/:assetId', asyncHandler(async (req, res) => {
+  const asset = await prisma.mediaAsset.findFirst({
+    where: { id: req.params.assetId as string, mediaId: req.params.id as string },
+  });
+  if (!asset) {
+    res.status(404).json({ error: 'Asset not found' });
+    return;
+  }
+
+  await deleteObject('previewImages', asset.objectKey).catch(() => {});
+  await prisma.mediaAsset.delete({ where: { id: asset.id } });
+
+  res.json({ message: 'Asset deleted' });
+}));
+
+// Add new preview image assets to existing media
+adminRoutes.post('/media/:id/assets', asyncHandler(async (req, res) => {
+  const { count } = req.body;
+  if (!count || count < 1 || count > 10) {
+    res.status(400).json({ error: 'count (1-10) required' });
+    return;
+  }
+
+  const media = await prisma.media.findUnique({
+    where: { id: req.params.id as string },
+    include: { assets: true },
+  });
+  if (!media) {
+    res.status(404).json({ error: 'Media not found' });
+    return;
+  }
+
+  const existingCount = media.assets.length;
+  if (existingCount + count > 10) {
+    res.status(400).json({ error: `Can only have 10 preview images. Currently ${existingCount}, requested ${count}` });
+    return;
+  }
+
+  const maxSort = media.assets.reduce((max, a) => Math.max(max, a.sortOrder), -1);
+
+  const newAssets = await prisma.$transaction(
+    Array.from({ length: count }, (_, i) =>
+      prisma.mediaAsset.create({
+        data: {
+          mediaId: media.id,
+          objectKey: crypto.randomUUID(),
+          sortOrder: maxSort + 1 + i,
+        },
+      })
+    )
+  );
+
+  const assets = newAssets.map((a) => ({
+    assetId: a.id,
+    sortOrder: a.sortOrder,
+  }));
+
+  res.json({ assets });
+}));
+
+// Reorder preview image assets
+adminRoutes.put('/media/:id/assets/reorder', asyncHandler(async (req, res) => {
+  const { order } = req.body;
+  if (!Array.isArray(order)) {
+    res.status(400).json({ error: 'order[] (array of asset IDs) required' });
+    return;
+  }
+
+  const media = await prisma.media.findUnique({
+    where: { id: req.params.id as string },
+    include: { assets: true },
+  });
+  if (!media) {
+    res.status(404).json({ error: 'Media not found' });
+    return;
+  }
+
+  const assetIds = new Set(media.assets.map((a) => a.id));
+  for (const id of order) {
+    if (!assetIds.has(id)) {
+      res.status(400).json({ error: `Asset ${id} does not belong to this media` });
+      return;
+    }
+  }
+
+  await prisma.$transaction(
+    order.map((assetId: string, i: number) =>
+      prisma.mediaAsset.update({
+        where: { id: assetId },
+        data: { sortOrder: i },
+      })
+    )
+  );
+
+  res.json({ message: 'Reordered' });
 }));
 
 // --- Users ---

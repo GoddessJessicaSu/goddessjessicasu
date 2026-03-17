@@ -63,7 +63,7 @@ export default function AddMediaForm({ onCreated }: AddMediaFormProps) {
         previewImageCount: previewImages.length,
       });
 
-      const { media, productUpload, previewClipUpload, previewImageUploads } =
+      const { media, productUpload, previewClipUpload, previewImageAssets } =
         res.data;
 
       // Track multipart for cancel
@@ -75,11 +75,11 @@ export default function AddMediaForm({ onCreated }: AddMediaFormProps) {
       }
 
       // 2. Build upload tasks (images paired by sortOrder)
-      const imageUploads = previewImageUploads
+      const imageUploads = previewImageAssets
         .sort((a: any, b: any) => a.sortOrder - b.sortOrder)
         .map((u: any, i: number) => ({
           file: previewImages[i],
-          url: u.url,
+          assetId: u.assetId,
         }));
 
       const productTask =
