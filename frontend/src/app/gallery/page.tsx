@@ -23,18 +23,26 @@ export default function Gallery() {
   const [error, setError] = useState<string | null>(null);
   const [lightbox, setLightbox] = useState<{ urls: string[]; index: number; title: string } | null>(null);
   const [descModal, setDescModal] = useState<{ title: string; description: string } | null>(null);
+  const [successModal, setSuccessModal] = useState<{ title: string } | null>(null);
 
-  useEffect(() => {
+  const loadGallery = () => {
     api.get("/gallery")
       .then((res) => setMedia(res.data.media))
       .catch((err) => {
         setError(err.response?.data?.error || "Failed to load gallery");
       })
       .finally(() => setLoading(false));
-  }, []);
+  };
+
+  useEffect(() => { loadGallery(); }, []);
 
   const openLightbox = (urls: string[], index: number, title: string) => {
     setLightbox({ urls, index, title });
+  };
+
+  const handlePurchaseSuccess = (title: string) => {
+    setSuccessModal({ title });
+    loadGallery();
   };
 
   return (
@@ -48,7 +56,7 @@ export default function Gallery() {
       {/* Header */}
       <div className="mb-16">
         <p className="font-heading text-primary/50 text-xs tracking-[0.4em] uppercase mb-4">The Collection</p>
-        <h1 className="font-heading text-4xl md:text-5xl text-gold-shimmer">Gallery</h1>
+        <h1 className="font-heading text-4xl md:text-5xl text-gold-shimmer">Masterpieces</h1>
         <div className="w-16 h-px bg-primary/30 mt-6" />
       </div>
 
@@ -65,7 +73,7 @@ export default function Gallery() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
           {media.map((item, i) => (
-            <MediaCard key={item.id} item={item} index={i} onImageClick={openLightbox} onReadMore={(title, desc) => setDescModal({ title, description: desc })} />
+            <MediaCard key={item.id} item={item} index={i} onImageClick={openLightbox} onReadMore={(title, desc) => setDescModal({ title, description: desc })} onPurchaseSuccess={handlePurchaseSuccess} />
           ))}
         </div>
       )}
@@ -92,6 +100,16 @@ export default function Gallery() {
           />
         )}
       </AnimatePresence>
+
+      {/* Download Sent Modal */}
+      <AnimatePresence>
+        {successModal && (
+          <DownloadSentModal
+            title={successModal.title}
+            onClose={() => setSuccessModal(null)}
+          />
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
@@ -101,16 +119,19 @@ function MediaCard({
   index,
   onImageClick,
   onReadMore,
+  onPurchaseSuccess,
 }: {
   item: MediaItem;
   index: number;
   onImageClick: (urls: string[], index: number, title: string) => void;
   onReadMore: (title: string, description: string) => void;
+  onPurchaseSuccess: (title: string) => void;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const descRef = useRef<HTMLParagraphElement>(null);
   const [expanded, setExpanded] = useState(false);
   const [isClamped, setIsClamped] = useState(false);
+  const [busy, setBusy] = useState(false);
   const hasMultiple = item.thumbnailUrls.length > 1;
 
   useEffect(() => {
@@ -134,13 +155,14 @@ function MediaCard({
   };
 
   const handlePurchase = async () => {
+    setBusy(true);
     try {
-      const res = await api.post(`/purchase/${item.id}`);
-      if (res.data.streamUrl) {
-        window.open(res.data.streamUrl, "_blank");
-      }
+      await api.post(`/purchase/${item.id}`);
+      onPurchaseSuccess(item.title);
     } catch (err: any) {
       alert(err.response?.data?.error || "Purchase failed");
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -170,14 +192,14 @@ function MediaCard({
             muted
             loop
             playsInline
-            className="w-full h-full object-cover transition-all duration-500 group-hover:scale-105 group-hover:brightness-75"
+            className="w-full h-full object-cover object-center transition-all duration-500 group-hover:scale-105 group-hover:brightness-75"
             poster={item.thumbnailUrls[0] || undefined}
           />
         ) : item.thumbnailUrls.length > 0 ? (
           <img
             src={item.thumbnailUrls[0]}
             alt={item.title}
-            className="w-full h-full object-cover transition-all duration-500 group-hover:scale-105 group-hover:brightness-75"
+            className="w-full h-full object-cover object-center transition-all duration-500 group-hover:scale-105 group-hover:brightness-75"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
@@ -185,10 +207,16 @@ function MediaCard({
           </div>
         )}
 
-        {/* Price badge */}
-        <div className="absolute top-3 right-3 bg-vanta/80 backdrop-blur-sm border border-gold px-3 py-1">
-          <span className="font-heading text-primary text-xs tracking-[0.1em]">
-            {item.priceTokens} {brand.tokenName}
+        {/* Price / Owned badge */}
+        <div className={`absolute top-3 right-3 backdrop-blur-sm px-3 py-1 ${
+          item.purchased
+            ? "bg-emerald-950/80 border border-emerald-500/40"
+            : "bg-vanta/80 border border-gold"
+        }`}>
+          <span className={`font-heading text-xs tracking-[0.1em] ${
+            item.purchased ? "text-emerald-400" : "text-primary"
+          }`}>
+            {item.purchased ? "Owned" : `${item.priceTokens} ${brand.tokenName}`}
           </span>
         </div>
 
@@ -289,12 +317,19 @@ function MediaCard({
             )}
           </div>
         )}
-        <button
-          onClick={handlePurchase}
-          className="w-full py-2.5 text-xs tracking-[0.15em] rounded transition-all duration-300 btn-crimson mt-auto"
-        >
-          {item.purchased ? "Watch" : "Unlock Content"}
-        </button>
+        {item.purchased ? (
+          <div className="w-full py-2.5 text-xs tracking-[0.2em] rounded text-center mt-auto bg-emerald-950/40 border border-emerald-500/20 text-emerald-400/60 font-heading uppercase cursor-default">
+            Sent to Email
+          </div>
+        ) : (
+          <button
+            onClick={handlePurchase}
+            disabled={busy}
+            className="w-full py-2.5 text-xs tracking-[0.15em] rounded transition-all duration-300 mt-auto disabled:opacity-50 btn-crimson"
+          >
+            {busy ? "Sending..." : "Unlock Content"}
+          </button>
+        )}
       </div>
     </motion.div>
   );
@@ -453,6 +488,72 @@ function renderBoldText(text: string) {
     }
     return <span key={i}>{part}</span>;
   });
+}
+
+function DownloadSentModal({ title, onClose }: { title: string; onClose: () => void }) {
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [onClose]);
+
+  return (
+    <motion.div
+      className="fixed inset-0 z-[100] flex items-center justify-center"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.3 }}
+    >
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/85 backdrop-blur-md" onClick={onClose} />
+
+      {/* Modal */}
+      <motion.div
+        className="relative z-10 w-full max-w-sm mx-6 text-center"
+        initial={{ scale: 0.9, opacity: 0, y: 20 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.9, opacity: 0, y: 20 }}
+        transition={{ delay: 0.1, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+      >
+        <div className="card-luxury rounded-lg p-10">
+          {/* Envelope icon */}
+          <div className="w-16 h-16 mx-auto mb-6 rounded-full border-2 border-primary/40 flex items-center justify-center">
+            <svg className="w-7 h-7 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+            </svg>
+          </div>
+
+          <p className="font-heading text-primary/50 text-[10px] tracking-[0.4em] uppercase mb-4">
+            Content Unlocked
+          </p>
+          <h2 className="font-heading text-2xl text-gold-shimmer mb-4">
+            Check Your Email
+          </h2>
+          <div className="w-10 h-px bg-primary/20 mx-auto mb-5" />
+
+          <p className="text-foreground/40 text-sm leading-relaxed mb-3">
+            Your download link for
+          </p>
+          <p className="text-foreground/70 font-heading text-sm tracking-[0.1em] uppercase mb-5">
+            {title}
+          </p>
+          <p className="text-foreground/40 text-sm leading-relaxed mb-8">
+            has been sent to your email. The link is valid for <span className="text-foreground/70 font-medium">24 hours</span>.
+          </p>
+
+          <button
+            onClick={onClose}
+            className="w-full py-3.5 text-sm tracking-[0.2em] rounded transition-all duration-300 btn-ghost-gold"
+          >
+            Continue Browsing
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
 }
 
 function DescriptionModal({

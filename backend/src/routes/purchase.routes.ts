@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { prisma } from '../prisma';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
 import { getPresignedUrl } from '../services/minio.service';
-import { sendPurchaseReceiptEmail } from '../services/mail.service';
+import { sendPurchaseDownloadEmail } from '../services/mail.service';
 import { createServiceLogger } from '../logger';
 import { asyncHandler } from '../middleware/async-handler';
 
@@ -18,21 +18,12 @@ purchaseRoutes.get('/vault', authMiddleware, asyncHandler(async (req: AuthReques
     orderBy: { createdAt: 'desc' },
   });
 
-  const items = await Promise.all(
-    purchases.map(async (p) => ({
-      id: p.media.id,
-      title: p.media.title,
-      description: p.media.description,
-      mimeType: p.media.mimeType,
-      durationSecs: p.media.durationSecs,
-      tokensSpent: p.tokensSpent,
-      purchasedAt: p.createdAt,
-      streamUrl: await getPresignedUrl('products', p.media.minioKey),
-      thumbnailUrls: await Promise.all(
-        p.media.assets.map((a) => getPresignedUrl('previewImages', a.objectKey))
-      ),
-    }))
-  );
+  const items = purchases.map((p) => ({
+    id: p.media.id,
+    title: p.media.title,
+    tokensSpent: p.tokensSpent,
+    purchasedAt: p.createdAt,
+  }));
 
   res.json({ items });
 }));
@@ -53,13 +44,12 @@ purchaseRoutes.post('/:mediaId', authMiddleware, asyncHandler(async (req: AuthRe
     return;
   }
 
-  // Check if already purchased
+  // Check if already purchased — no resend
   const existing = await prisma.purchase.findUnique({
     where: { userId_mediaId: { userId: user.id, mediaId } },
   });
   if (existing) {
-    const url = await getPresignedUrl('products', media.minioKey);
-    res.json({ message: 'Already purchased', streamUrl: url });
+    res.status(400).json({ error: 'Already purchased. Download link was sent to your email.' });
     return;
   }
 
@@ -83,12 +73,12 @@ purchaseRoutes.post('/:mediaId', authMiddleware, asyncHandler(async (req: AuthRe
     }),
   ]);
 
-  const streamUrl = await getPresignedUrl('products', media.minioKey);
+  const downloadUrl = await getPresignedUrl('products', media.minioKey);
 
-  // Send receipt email (non-blocking)
-  sendPurchaseReceiptEmail(user.email, media.title, media.priceTokens).catch((err) =>
-    log.error({ err, userId: user.id, mediaId }, 'Failed to send receipt email')
+  // Send download email (non-blocking)
+  sendPurchaseDownloadEmail(user.email, media.title, downloadUrl).catch((err) =>
+    log.error({ err, userId: user.id, mediaId }, 'Failed to send download email')
   );
 
-  res.json({ streamUrl, tokensSpent: media.priceTokens });
+  res.json({ message: 'Download link sent to your email', tokensSpent: media.priceTokens });
 }));

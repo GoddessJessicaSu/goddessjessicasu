@@ -205,7 +205,105 @@ function ConfigTab() {
         </button>
       </div>
 
+      <WhitelistSection config={cfg} onConfigUpdate={setCfg} />
       <TiersSection />
+    </div>
+  );
+}
+
+function WhitelistSection({ config, onConfigUpdate }: { config: any; onConfigUpdate: (c: any) => void }) {
+  const [emails, setEmails] = useState<{ id: string; email: string }[]>([]);
+  const [newEmail, setNewEmail] = useState("");
+  const [toggling, setToggling] = useState(false);
+
+  const loadEmails = () => {
+    api.get("/admin/whitelist").then((res) => setEmails(res.data.emails)).catch(() => {});
+  };
+
+  useEffect(() => { loadEmails(); }, []);
+
+  const handleToggle = async () => {
+    setToggling(true);
+    try {
+      const res = await api.put("/admin/config", { whitelistEnabled: !config.whitelistEnabled });
+      onConfigUpdate(res.data.config);
+    } catch {
+      alert("Failed to update");
+    } finally {
+      setToggling(false);
+    }
+  };
+
+  const handleAdd = async () => {
+    const email = newEmail.trim().toLowerCase();
+    if (!email) return;
+    try {
+      await api.post("/admin/whitelist", { email });
+      setNewEmail("");
+      loadEmails();
+    } catch (err: any) {
+      alert(err.response?.data?.error || "Failed to add email");
+    }
+  };
+
+  const handleRemove = async (id: string) => {
+    try {
+      await api.delete(`/admin/whitelist/${id}`);
+      loadEmails();
+    } catch {
+      alert("Failed to remove email");
+    }
+  };
+
+  return (
+    <div className="bg-white/5 rounded-lg p-6 border border-white/10 space-y-5">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-semibold">Email Whitelist</h3>
+          <p className="text-white/25 text-xs mt-1">When enabled, only whitelisted emails can sign in and operate.</p>
+        </div>
+        <button
+          onClick={handleToggle}
+          disabled={toggling}
+          className={`relative w-12 h-6 rounded-full transition-colors duration-300 ${
+            config.whitelistEnabled ? "bg-green-600" : "bg-white/10"
+          }`}
+        >
+          <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform duration-300 ${
+            config.whitelistEnabled ? "translate-x-6" : "translate-x-0"
+          }`} />
+        </button>
+      </div>
+
+      {config.whitelistEnabled && (
+        <>
+          <div className="flex items-center gap-2">
+            <input
+              type="email"
+              value={newEmail}
+              onChange={(e) => setNewEmail(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") handleAdd(); }}
+              placeholder="user@example.com"
+              className="flex-1 px-3 py-2 bg-black border border-white/10 rounded text-white text-sm placeholder:text-white/20"
+            />
+            <button onClick={handleAdd} className="px-4 py-2 bg-primary text-black font-semibold rounded text-sm hover:brightness-110 transition">
+              Add
+            </button>
+          </div>
+
+          <div className="space-y-1.5 max-h-64 overflow-y-auto custom-scrollbar">
+            {emails.map((entry) => (
+              <div key={entry.id} className="flex items-center justify-between bg-black/30 rounded px-3 py-2 border border-white/10">
+                <span className="text-white/70 text-sm font-mono">{entry.email}</span>
+                <button onClick={() => handleRemove(entry.id)} className="text-red-400/60 hover:text-red-400 text-xs transition-colors">
+                  Remove
+                </button>
+              </div>
+            ))}
+            {emails.length === 0 && <p className="text-white/30 text-sm text-center py-2">No emails whitelisted yet.</p>}
+          </div>
+        </>
+      )}
     </div>
   );
 }

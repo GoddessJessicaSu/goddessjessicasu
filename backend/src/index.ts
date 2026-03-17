@@ -12,7 +12,6 @@ import { adminRoutes } from './routes/admin.routes';
 import { galleryRoutes } from './routes/gallery.routes';
 import { webhookRoutes } from './routes/webhook.routes';
 import { ensureBuckets } from './services/minio.service';
-
 const app = express();
 
 app.use(helmet());

@@ -73,6 +73,18 @@ authRoutes.post('/request', asyncHandler(async (req, res) => {
   }
 
   const normalizedEmail = email.toLowerCase().trim();
+
+  // Check email whitelist if enabled
+  const siteConfig = await prisma.siteConfig.findUnique({ where: { id: 1 } });
+  if (siteConfig?.whitelistEnabled) {
+    const isWhitelisted = await prisma.whitelistedEmail.findUnique({ where: { email: normalizedEmail } });
+    // Always allow admin email through
+    if (!isWhitelisted && normalizedEmail !== config.adminEmail) {
+      res.status(403).json({ error: 'This email is not authorized. Access is currently restricted.' });
+      return;
+    }
+  }
+
   const token = crypto.randomBytes(32).toString('hex');
   const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 min
 

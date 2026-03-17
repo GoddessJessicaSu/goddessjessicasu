@@ -15,7 +15,6 @@ interface UserInfo {
 interface VaultItem {
   id: string;
   title: string;
-  streamUrl: string;
   tokensSpent: number;
   purchasedAt: string;
 }
@@ -121,6 +120,32 @@ export default function Dashboard() {
             </span>
             <span className="font-heading text-primary/50 text-lg tracking-[0.2em] uppercase">{brand.tokenName}</span>
           </div>
+        </div>
+      </motion.div>
+
+      {/* What is GRACE */}
+      <motion.div
+        className="card-luxury rounded-lg p-8 md:p-10 mb-8"
+        initial={{ y: 20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.15 }}
+      >
+        <p className="font-heading text-primary/50 text-xs tracking-[0.4em] uppercase mb-2">The Currency</p>
+        <h2 className="font-heading text-xl text-primary tracking-[0.1em] mb-6">
+          What is {brand.tokenName}?
+        </h2>
+        <div className="space-y-4 text-foreground/45 text-sm leading-[1.9]">
+          <p>
+            Beneath my sharp heels, every crush is an act of art. To enter my world, you must collect my <strong className="text-primary font-semibold">{brand.tokenName}</strong>. Think of each token as a <strong className="text-foreground/70">small fragment of the power</strong> I leave behind on the floor after I am done.
+          </p>
+          <p>
+            Use your <strong className="text-primary font-semibold">{brand.tokenName}</strong> to unlock my <strong className="text-foreground/70">private library of destruction</strong>. As you offer these fragments to me, you mend the shattered images of my work. Collect enough, and the <strong className="text-foreground/70">full elegance of the crush</strong> will finally be yours to witness.
+          </p>
+        </div>
+        <div className="mt-6 pt-6 border-t border-gold/10 text-center">
+          <p className="font-heading text-primary/60 text-sm tracking-[0.15em] italic">
+            &ldquo;Gather my shards. Restore the beauty. Receive my {brand.tokenName}.&rdquo;
+          </p>
         </div>
       </motion.div>
 
@@ -257,14 +282,9 @@ export default function Dashboard() {
                     {item.tokensSpent} {brand.tokenName} &bull; {new Date(item.purchasedAt).toLocaleDateString()}
                   </p>
                 </div>
-                <a
-                  href={item.streamUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn-crimson px-5 py-2 text-xs tracking-[0.15em] rounded"
-                >
-                  Watch
-                </a>
+                <span className="bg-emerald-950/40 border border-emerald-500/20 text-emerald-400/60 font-heading uppercase px-5 py-2 text-xs tracking-[0.2em] rounded">
+                  Sent to Email
+                </span>
               </motion.div>
             ))}
           </div>

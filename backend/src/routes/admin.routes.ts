@@ -12,7 +12,6 @@ import {
 } from '../services/minio.service';
 import { asyncHandler } from '../middleware/async-handler';
 import crypto from 'crypto';
-
 export const adminRoutes = Router();
 adminRoutes.use(authMiddleware);
 adminRoutes.use(adminMiddleware);
@@ -286,7 +285,7 @@ adminRoutes.delete('/tiers/:id', asyncHandler(async (req, res) => {
 }));
 
 adminRoutes.put('/config', asyncHandler(async (req, res) => {
-  const { rateUsdPerToken, bioText, customVideoText } = req.body;
+  const { rateUsdPerToken, bioText, customVideoText, whitelistEnabled } = req.body;
 
   const siteConfig = await prisma.siteConfig.upsert({
     where: { id: 1 },
@@ -295,13 +294,44 @@ adminRoutes.put('/config', asyncHandler(async (req, res) => {
       ...(rateUsdPerToken !== undefined && { rateUsdPerToken }),
       ...(bioText !== undefined && { bioText }),
       ...(customVideoText !== undefined && { customVideoText }),
+      ...(whitelistEnabled !== undefined && { whitelistEnabled }),
     },
     update: {
       ...(rateUsdPerToken !== undefined && { rateUsdPerToken }),
       ...(bioText !== undefined && { bioText }),
       ...(customVideoText !== undefined && { customVideoText }),
+      ...(whitelistEnabled !== undefined && { whitelistEnabled }),
     },
   });
 
   res.json({ config: siteConfig });
 }));
+
+// --- Email Whitelist ---
+
+adminRoutes.get('/whitelist', asyncHandler(async (_req, res) => {
+  const emails = await prisma.whitelistedEmail.findMany({ orderBy: { createdAt: 'desc' } });
+  res.json({ emails });
+}));
+
+adminRoutes.post('/whitelist', asyncHandler(async (req, res) => {
+  const { email } = req.body;
+  if (!email || typeof email !== 'string') {
+    res.status(400).json({ error: 'Email is required' });
+    return;
+  }
+  const normalized = email.toLowerCase().trim();
+  const existing = await prisma.whitelistedEmail.findUnique({ where: { email: normalized } });
+  if (existing) {
+    res.status(409).json({ error: 'Email already whitelisted' });
+    return;
+  }
+  const entry = await prisma.whitelistedEmail.create({ data: { email: normalized } });
+  res.json({ entry });
+}));
+
+adminRoutes.delete('/whitelist/:id', asyncHandler(async (req, res) => {
+  await prisma.whitelistedEmail.delete({ where: { id: req.params.id as string } });
+  res.json({ message: 'Removed' });
+}));
+

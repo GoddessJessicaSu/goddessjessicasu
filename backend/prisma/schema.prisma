@@ -124,5 +124,13 @@ model SiteConfig {
   bioText           String?
   customVideoText   String?
 
+  whitelistEnabled  Boolean  @default(false)
+
   updatedAt         DateTime @updatedAt
+}
+
+model WhitelistedEmail {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  createdAt DateTime @default(now())
 }

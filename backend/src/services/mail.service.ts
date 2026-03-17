@@ -118,56 +118,80 @@ export async function sendMagicLinkEmail(email: string, token: string) {
   }
 }
 
-export async function sendPurchaseReceiptEmail(email: string, mediaTitle: string, tokensSpent: number) {
+export async function sendPurchaseDownloadEmail(email: string, mediaTitle: string, downloadUrl: string) {
+  const bodyStyle = "font-family: 'Georgia', 'Times New Roman', serif; font-size: 14px; color: rgba(245,240,232,0.55); line-height: 1.9;";
+  const accentStyle = "color: rgba(245,240,232,0.8);";
+
   const html = emailWrapper(`
     <!-- Heading -->
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
       <tr><td align="center" style="padding-bottom: 8px;">
-        <span style="font-family: 'Georgia', 'Times New Roman', serif; font-size: 10px; letter-spacing: 3px; text-transform: uppercase; color: rgba(212,175,55,0.4);">Confirmation</span>
+        <span style="font-family: 'Georgia', 'Times New Roman', serif; font-size: 10px; letter-spacing: 3px; text-transform: uppercase; color: rgba(212,175,55,0.4);">Your Content</span>
       </td></tr>
       <tr><td align="center" style="padding-bottom: 24px;">
-        <span style="font-family: 'Georgia', 'Times New Roman', serif; font-size: 26px; color: ${primaryColor};">Purchase Complete</span>
+        <span style="font-family: 'Georgia', 'Times New Roman', serif; font-size: 26px; color: ${primaryColor};">${mediaTitle}</span>
       </td></tr>
       <tr><td align="center" style="padding-bottom: 32px;">
         <div style="width: 40px; height: 1px; background-color: rgba(212,175,55,0.3);"></div>
       </td></tr>
     </table>
 
-    <!-- Details card -->
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: rgba(212,175,55,0.03); border: 1px solid rgba(212,175,55,0.1); border-radius: 4px;">
-      <tr><td style="padding: 24px 28px;">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-          <tr>
-            <td style="padding-bottom: 12px;">
-              <span style="font-family: 'Georgia', 'Times New Roman', serif; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: rgba(245,240,232,0.3);">Item</span>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding-bottom: 20px;">
-              <span style="font-family: 'Georgia', 'Times New Roman', serif; font-size: 16px; color: rgba(245,240,232,0.8);">${mediaTitle}</span>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding-bottom: 4px;">
-              <span style="font-family: 'Georgia', 'Times New Roman', serif; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: rgba(245,240,232,0.3);">Amount</span>
-            </td>
-          </tr>
-          <tr>
-            <td>
-              <span style="font-family: 'Georgia', 'Times New Roman', serif; font-size: 22px; color: ${primaryColor};">${tokensSpent}</span>
-              <span style="font-family: 'Georgia', 'Times New Roman', serif; font-size: 12px; letter-spacing: 2px; color: rgba(212,175,55,0.5); margin-left: 6px;">${tokenName}</span>
-            </td>
-          </tr>
-        </table>
+    <!-- Body -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+      <tr><td style="${bodyStyle} padding-bottom: 6px;">Hey little one,</td></tr>
+      <tr><td style="${bodyStyle} padding-bottom: 20px;">Your videos are ready for you.</td></tr>
+      <tr><td style="${bodyStyle} padding-bottom: 6px;">I know you've been waiting so patiently for me.</td></tr>
+      <tr><td style="${bodyStyle} ${accentStyle} padding-bottom: 28px;">Good boy.</td></tr>
+    </table>
+
+    <!-- Download button -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+      <tr><td style="padding-bottom: 8px;">
+        <span style="font-family: 'Georgia', 'Times New Roman', serif; font-size: 12px; color: rgba(245,240,232,0.35);">&#127909; Download here (valid for 24 hours):</span>
+      </td></tr>
+      <tr><td align="center" style="padding-bottom: 32px;">
+        <a href="${downloadUrl}" style="display: inline-block; padding: 14px 48px; background-color: ${accentColor}; color: rgba(245,240,232,0.9); text-decoration: none; font-family: 'Georgia', 'Times New Roman', serif; font-size: 12px; letter-spacing: 3px; text-transform: uppercase; border-radius: 2px;">
+          &#128279; Download Now
+        </a>
       </td></tr>
     </table>
 
-    <!-- Body text -->
+    <!-- Divider -->
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-      <tr><td align="center" style="padding: 28px 0 0;">
-        <span style="font-family: 'Georgia', 'Times New Roman', serif; font-size: 13px; color: rgba(245,240,232,0.35); line-height: 1.7;">
-          You can access this content anytime from your vault.
-        </span>
+      <tr><td style="padding-bottom: 24px;">
+        <div style="width: 100%; height: 1px; background-color: rgba(212,175,55,0.1);"></div>
+      </td></tr>
+    </table>
+
+    <!-- Closing copy -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+      <tr><td style="${bodyStyle} padding-bottom: 24px;">
+        Enjoy every second of it &mdash; and feel free to release yourself. &#128166;<br />
+        That's what it's made for. &#128139;
+      </td></tr>
+      <tr><td style="${bodyStyle} padding-bottom: 24px;">
+        When you've finished, reply to this email.<br />
+        Tell me how you liked it &mdash; what made you feel the most.<br />
+        I want to know&hellip; so I can make the next one even better for you. &#128151;
+      </td></tr>
+    </table>
+
+    <!-- Telegram -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+      <tr><td style="padding-bottom: 24px;">
+        <div style="width: 100%; height: 1px; background-color: rgba(212,175,55,0.1);"></div>
+      </td></tr>
+      <tr><td style="${bodyStyle} padding-bottom: 8px;">Also don't forget to join my telegram group:</td></tr>
+      <tr><td style="padding-bottom: 28px;">
+        <a href="https://t.me/goddessjessicasucrush" style="font-family: 'Georgia', 'Times New Roman', serif; font-size: 14px; color: ${primaryColor}; text-decoration: none;">https://t.me/goddessjessicasucrush</a>
+      </td></tr>
+    </table>
+
+    <!-- Signature -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+      <tr><td style="${bodyStyle} ${accentStyle}">
+        Jessica Su<br />
+        <span style="color: rgba(245,240,232,0.4);">Your dream goddess &#128096;</span>
       </td></tr>
     </table>
   `);
@@ -175,11 +199,11 @@ export async function sendPurchaseReceiptEmail(email: string, mediaTitle: string
   const { error } = await resend.emails.send({
     from: config.resend.fromEmail,
     to: email,
-    subject: `Purchase confirmed — ${mediaTitle}`,
+    subject: `Your download is ready — ${mediaTitle}`,
     html,
   });
 
   if (error) {
-    throw new Error(`Failed to send purchase receipt email: ${error.message}`);
+    throw new Error(`Failed to send download email: ${error.message}`);
   }
 }
