@@ -108,7 +108,7 @@ model Purchase {
   userId       Int
   user         User     @relation(fields: [userId], references: [id])
   mediaId      String
-  media        Media    @relation(fields: [mediaId], references: [id])
+  media        Media    @relation(fields: [mediaId], references: [id], onDelete: Cascade)
   tokensSpent  Float
   createdAt    DateTime @default(now())
 
