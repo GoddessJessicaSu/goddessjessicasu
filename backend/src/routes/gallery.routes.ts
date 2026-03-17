@@ -1,12 +1,12 @@
 import { Router } from 'express';
 import { prisma } from '../prisma';
 import { getPresignedUrl } from '../services/minio.service';
-import { optionalAuthMiddleware, AuthRequest } from '../middleware/auth';
+import { authMiddleware, AuthRequest } from '../middleware/auth';
 import { asyncHandler } from '../middleware/async-handler';
 
 export const galleryRoutes = Router();
 
-galleryRoutes.get('/', optionalAuthMiddleware, asyncHandler(async (req: AuthRequest, res) => {
+galleryRoutes.get('/', authMiddleware, asyncHandler(async (req: AuthRequest, res) => {
   const media = await prisma.media.findMany({
     where: { isPublished: true },
     orderBy: { createdAt: 'desc' },

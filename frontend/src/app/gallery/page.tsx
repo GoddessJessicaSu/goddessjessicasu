@@ -25,16 +25,27 @@ export default function Gallery() {
   const [descModal, setDescModal] = useState<{ title: string; description: string } | null>(null);
   const [successModal, setSuccessModal] = useState<{ title: string } | null>(null);
 
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      window.location.href = "/auth/magic-link";
+      return;
+    }
+    loadGallery();
+  }, []);
+
   const loadGallery = () => {
     api.get("/gallery")
       .then((res) => setMedia(res.data.media))
       .catch((err) => {
+        if (err.response?.status === 401 || err.response?.status === 403) {
+          window.location.href = "/auth/magic-link";
+          return;
+        }
         setError(err.response?.data?.error || "Failed to load gallery");
       })
       .finally(() => setLoading(false));
   };
-
-  useEffect(() => { loadGallery(); }, []);
 
   const openLightbox = (urls: string[], index: number, title: string) => {
     setLightbox({ urls, index, title });

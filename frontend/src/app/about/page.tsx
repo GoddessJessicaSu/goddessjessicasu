@@ -1,9 +1,34 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import api from "@/lib/api";
 
 export default function About() {
+  const [authorized, setAuthorized] = useState(false);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      window.location.href = "/auth/magic-link";
+      return;
+    }
+    api.get("/auth/me")
+      .then(() => setAuthorized(true))
+      .catch(() => {
+        window.location.href = "/auth/magic-link";
+      });
+  }, []);
+
+  if (!authorized) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="font-heading text-primary/30 text-sm tracking-[0.3em] uppercase">Loading...</div>
+      </div>
+    );
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0 }}

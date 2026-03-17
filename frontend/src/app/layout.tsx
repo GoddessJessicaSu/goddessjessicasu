@@ -115,15 +115,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <img src="/logo.svg" alt="Goddess Jessica Su" className="h-12 w-auto" />
             </Link>
             <div className="flex gap-8 items-center text-[11px] font-sans font-light tracking-[0.2em] uppercase">
-              <Link href="/about" className="nav-link text-foreground/40 hover:text-primary">
-                About
-              </Link>
-              <Link href="/gallery" className="nav-link text-foreground/40 hover:text-primary">
-                Masterpieces
-              </Link>
-              <Link href="/dashboard" className="nav-link text-foreground/40 hover:text-primary">
-                Dashboard
-              </Link>
+              {isLoggedIn && (
+                <>
+                  <Link href="/about" className="nav-link text-foreground/40 hover:text-primary">
+                    About
+                  </Link>
+                  <Link href="/gallery" className="nav-link text-foreground/40 hover:text-primary">
+                    Masterpieces
+                  </Link>
+                  <Link href="/dashboard" className="nav-link text-foreground/40 hover:text-primary">
+                    Dashboard
+                  </Link>
+                </>
+              )}
               {isLoggedIn ? (
                 <>
                   {displayName && (
