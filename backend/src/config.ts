@@ -21,19 +21,18 @@ export const config = {
     fromEmail: required("RESEND_FROM_EMAIL"),
   },
 
-  minio: {
-    endpoint: required("MINIO_ENDPOINT"),
-    port: parseInt(optional("MINIO_PORT", "9000"), 10),
-    rootUser: required("MINIO_ROOT_USER"),
-    rootPassword: required("MINIO_ROOT_PASSWORD"),
-    buckets: {
+  storj: {
+    endpoint: required("STORJ_ENDPOINT"),
+    accessKeyId: required("STORJ_ACCESS_KEY_ID"),
+    secretAccessKey: required("STORJ_SECRET_ACCESS_KEY"),
+    bucket: optional("STORJ_BUCKET", "jessica-su"),
+    prefixes: {
       siteAssets: "site-assets",
       previewImages: "preview-images",
       previewVideos: "preview-videos",
       products: "products",
     },
-    presignExpiry: parseInt(optional("MINIO_PRESIGN_EXPIRY", "3600"), 10),
-    publicUrl: process.env.MINIO_PUBLIC_URL || "",
+    presignExpiry: parseInt(optional("STORJ_PRESIGN_EXPIRY", "86400"), 10),
   },
 
   nowpayments: {

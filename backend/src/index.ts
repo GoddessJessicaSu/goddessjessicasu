@@ -12,7 +12,6 @@ import { adminRoutes } from './routes/admin.routes';
 import { adminUploadRoutes } from './routes/admin-upload.routes';
 import { galleryRoutes } from './routes/gallery.routes';
 import { webhookRoutes } from './routes/webhook.routes';
-import { ensureBuckets } from './services/minio.service';
 const app = express();
 
 app.use(helmet());
@@ -39,21 +38,14 @@ app.get('/api/health', (_req, res) => {
 
 app.use(errorHandler);
 
-ensureBuckets()
-  .then(() => {
-    const server = app.listen(config.port, () => {
-      logger.info({ port: config.port }, 'Backend running');
-    });
+const server = app.listen(config.port, () => {
+  logger.info({ port: config.port }, 'Backend running');
+});
 
-    function shutdown() {
-      logger.info('Shutting down...');
-      server.close(() => process.exit(0));
-    }
+function shutdown() {
+  logger.info('Shutting down...');
+  server.close(() => process.exit(0));
+}
 
-    process.on('SIGTERM', shutdown);
-    process.on('SIGINT', shutdown);
-  })
-  .catch((err) => {
-    logger.error({ err }, 'Failed to ensure MinIO buckets');
-    process.exit(1);
-  });
+process.on('SIGTERM', shutdown);
+process.on('SIGINT', shutdown);

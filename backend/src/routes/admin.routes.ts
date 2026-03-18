@@ -10,7 +10,7 @@ import {
   completeMultipartUpload,
   abortMultipartUpload,
   deleteObject,
-} from '../services/minio.service';
+} from '../services/storage.service';
 import { asyncHandler } from '../middleware/async-handler';
 import crypto from 'crypto';
 export const adminRoutes = Router();

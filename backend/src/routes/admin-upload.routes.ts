@@ -2,7 +2,8 @@ import { Router } from 'express';
 import { prisma } from '../prisma';
 import { authMiddleware } from '../middleware/auth';
 import { adminMiddleware } from '../middleware/admin';
-import { minioClient } from '../services/minio.service';
+import { s3 } from '../services/storage.service';
+import { PutObjectCommand } from '@aws-sdk/client-s3';
 import { asyncHandler } from '../middleware/async-handler';
 import { config } from '../config';
 import { createServiceLogger } from '../logger';
@@ -40,11 +41,14 @@ adminUploadRoutes.put('/media/assets/:assetId/upload', asyncHandler(async (req, 
     .webp({ quality: WEBP_QUALITY })
     .toBuffer();
 
-  // Upload to Minio
-  const bucket = config.minio.buckets.previewImages;
-  await minioClient.putObject(bucket, asset.objectKey, resized, resized.length, {
-    'Content-Type': 'image/webp',
-  });
+  // Upload to Storj
+  const key = `${config.storj.prefixes.previewImages}/${asset.objectKey}`;
+  await s3.send(new PutObjectCommand({
+    Bucket: config.storj.bucket,
+    Key: key,
+    Body: resized,
+    ContentType: 'image/webp',
+  }));
 
   log.info(
     { assetId: asset.id, originalSize: body.length, resizedSize: resized.length },

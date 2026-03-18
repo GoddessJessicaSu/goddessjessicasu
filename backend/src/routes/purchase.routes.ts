@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { prisma } from '../prisma';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
-import { getPresignedUrl } from '../services/minio.service';
+import { getPresignedUrl } from '../services/storage.service';
 import { sendPurchaseDownloadEmail } from '../services/mail.service';
 import { createServiceLogger } from '../logger';
 import { asyncHandler } from '../middleware/async-handler';
