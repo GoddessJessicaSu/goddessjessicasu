@@ -1,15 +1,15 @@
-import { Resend } from 'resend';
-import { config } from '../config';
-import { createServiceLogger } from '../logger';
+import { Resend } from "resend";
+import { config } from "../config";
+import { createServiceLogger } from "../logger";
 
-const log = createServiceLogger('mail');
+const log = createServiceLogger("mail");
 
 const resend = new Resend(config.resend.apiKey);
 
-const siteName = process.env.NEXT_PUBLIC_SITE_NAME || 'Goddess OS';
-const tokenName = process.env.NEXT_PUBLIC_TOKEN_NAME || 'GRACE';
-const primaryColor = process.env.NEXT_PUBLIC_PRIMARY_COLOR || '#D4AF37';
-const accentColor = process.env.NEXT_PUBLIC_ACCENT_COLOR || '#8B0000';
+const siteName = process.env.NEXT_PUBLIC_SITE_NAME || "Goddess OS";
+const tokenName = process.env.NEXT_PUBLIC_TOKEN_NAME || "GRACE";
+const primaryColor = process.env.NEXT_PUBLIC_PRIMARY_COLOR || "#D4AF37";
+const accentColor = process.env.NEXT_PUBLIC_ACCENT_COLOR || "#8B0000";
 
 function emailWrapper(content: string): string {
   return `
@@ -54,8 +54,8 @@ function emailWrapper(content: string): string {
 }
 
 export async function sendMagicLinkEmail(email: string, token: string) {
-  log.info({ to: email }, 'Sending magic link email');
-  const url = `${config.isDev ? 'http://localhost:3000' : process.env.NEXT_PUBLIC_SITE_URL}/auth/verify?token=${token}`;
+  log.info({ to: email }, "Sending magic link email");
+  const url = `${config.isDev ? "http://localhost:3000" : process.env.NEXT_PUBLIC_SITE_URL}/auth/verify?token=${token}`;
 
   const html = emailWrapper(`
     <!-- Heading -->
@@ -118,8 +118,13 @@ export async function sendMagicLinkEmail(email: string, token: string) {
   }
 }
 
-export async function sendPurchaseDownloadEmail(email: string, mediaTitle: string, downloadUrl: string) {
-  const bodyStyle = "font-family: 'Georgia', 'Times New Roman', serif; font-size: 14px; color: rgba(245,240,232,0.55); line-height: 1.9;";
+export async function sendPurchaseDownloadEmail(
+  email: string,
+  mediaTitle: string,
+  downloadUrl: string,
+) {
+  const bodyStyle =
+    "font-family: 'Georgia', 'Times New Roman', serif; font-size: 14px; color: rgba(245,240,232,0.55); line-height: 1.9;";
   const accentStyle = "color: rgba(245,240,232,0.8);";
 
   const html = emailWrapper(`
@@ -140,7 +145,7 @@ export async function sendPurchaseDownloadEmail(email: string, mediaTitle: strin
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
       <tr><td style="${bodyStyle} padding-bottom: 6px;">Hey little one,</td></tr>
       <tr><td style="${bodyStyle} padding-bottom: 20px;">Your videos are ready for you.</td></tr>
-      <tr><td style="${bodyStyle} padding-bottom: 6px;">I know you've been waiting so patiently for me.</td></tr>
+      <tr><td style="${bodyStyle} padding-bottom: 6px;">I know you are begging to see what I've prepared for you.</td></tr>
       <tr><td style="${bodyStyle} ${accentStyle} padding-bottom: 28px;">Good boy.</td></tr>
     </table>
 
@@ -183,7 +188,7 @@ export async function sendPurchaseDownloadEmail(email: string, mediaTitle: strin
       </td></tr>
       <tr><td style="${bodyStyle} padding-bottom: 8px;">Also don't forget to join my telegram group:</td></tr>
       <tr><td style="padding-bottom: 28px;">
-        <a href="https://t.me/goddessjessicasucrush" style="font-family: 'Georgia', 'Times New Roman', serif; font-size: 14px; color: ${primaryColor}; text-decoration: none;">https://t.me/goddessjessicasucrush</a>
+        <a href="https://t.me/+Y-GmDHbzgQwyNTIx" style="font-family: 'Georgia', 'Times New Roman', serif; font-size: 14px; color: ${primaryColor}; text-decoration: none;">https://t.me/goddessjessicasucrush</a>
       </td></tr>
     </table>
 

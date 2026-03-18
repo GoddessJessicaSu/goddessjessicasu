@@ -33,6 +33,11 @@ export default function Gallery() {
   const [successModal, setSuccessModal] = useState<{ title: string } | null>(
     null,
   );
+  const [insufficientModal, setInsufficientModal] = useState<{
+    title: string;
+    required: number;
+    current: number;
+  } | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -111,6 +116,9 @@ export default function Gallery() {
                 setDescModal({ title, description: desc })
               }
               onPurchaseSuccess={handlePurchaseSuccess}
+              onInsufficientBalance={(title, required, current) =>
+                setInsufficientModal({ title, required, current })
+              }
             />
           ))}
         </div>
@@ -148,6 +156,18 @@ export default function Gallery() {
           />
         )}
       </AnimatePresence>
+
+      {/* Insufficient Balance Modal */}
+      <AnimatePresence>
+        {insufficientModal && (
+          <InsufficientBalanceModal
+            title={insufficientModal.title}
+            required={insufficientModal.required}
+            current={insufficientModal.current}
+            onClose={() => setInsufficientModal(null)}
+          />
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
@@ -158,12 +178,14 @@ function MediaCard({
   onImageClick,
   onReadMore,
   onPurchaseSuccess,
+  onInsufficientBalance,
 }: {
   item: MediaItem;
   index: number;
   onImageClick: (urls: string[], index: number, title: string) => void;
   onReadMore: (title: string, description: string) => void;
   onPurchaseSuccess: (title: string) => void;
+  onInsufficientBalance: (title: string, required: number, current: number) => void;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const descRef = useRef<HTMLParagraphElement>(null);
@@ -198,7 +220,12 @@ function MediaCard({
       await api.post(`/purchase/${item.id}`);
       onPurchaseSuccess(item.title);
     } catch (err: any) {
-      alert(err.response?.data?.error || "Purchase failed");
+      const data = err.response?.data;
+      if (data?.error === "Insufficient balance") {
+        onInsufficientBalance(item.title, data.required, data.current);
+      } else {
+        alert(data?.error || "Purchase failed");
+      }
     } finally {
       setBusy(false);
     }
@@ -774,6 +801,121 @@ function DescriptionModal({
 
         {/* Footer fade */}
         <div className="h-8 bg-gradient-to-t from-vanta to-transparent -mt-8 relative z-10 pointer-events-none" />
+      </motion.div>
+    </motion.div>
+  );
+}
+
+/* ─── Insufficient Balance Modal ──────────────────────────────────── */
+
+function InsufficientBalanceModal({
+  title,
+  required,
+  current,
+  onClose,
+}: {
+  title: string;
+  required: number;
+  current: number;
+  onClose: () => void;
+}) {
+  const needed = required - current;
+
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [onClose]);
+
+  return (
+    <motion.div
+      className="fixed inset-0 z-[100] flex items-center justify-center"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.3 }}
+    >
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/85 backdrop-blur-md"
+        onClick={onClose}
+      />
+
+      {/* Modal */}
+      <motion.div
+        className="relative z-10 w-full max-w-sm mx-6 text-center"
+        initial={{ scale: 0.9, opacity: 0, y: 20 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.9, opacity: 0, y: 20 }}
+        transition={{ delay: 0.1, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+      >
+        <div className="card-luxury rounded-lg p-10">
+          {/* Icon */}
+          <div className="w-16 h-16 mx-auto mb-6 rounded-full border-2 border-accent/40 flex items-center justify-center">
+            <svg
+              className="w-7 h-7 text-accent"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={1.5}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"
+              />
+            </svg>
+          </div>
+
+          <p className="font-heading text-accent/50 text-[10px] tracking-[0.4em] uppercase mb-4">
+            Insufficient {brand.tokenName}
+          </p>
+          <h2 className="font-heading text-2xl text-gold-shimmer mb-4">
+            More {brand.tokenName} Needed
+          </h2>
+          <div className="w-10 h-px bg-primary/20 mx-auto mb-5" />
+
+          <p className="text-foreground/40 text-sm leading-relaxed mb-2">
+            To unlock
+          </p>
+          <p className="text-foreground/70 font-heading text-sm tracking-[0.1em] uppercase mb-5">
+            {title}
+          </p>
+
+          <div className="flex justify-between items-center px-4 py-3 rounded bg-vanta/60 border border-gold/10 mb-3">
+            <span className="text-foreground/40 text-xs">Required</span>
+            <span className="text-foreground/70 font-heading text-sm">
+              {required} {brand.tokenName}
+            </span>
+          </div>
+          <div className="flex justify-between items-center px-4 py-3 rounded bg-vanta/60 border border-gold/10 mb-3">
+            <span className="text-foreground/40 text-xs">Your Balance</span>
+            <span className="text-foreground/70 font-heading text-sm">
+              {current} {brand.tokenName}
+            </span>
+          </div>
+          <div className="flex justify-between items-center px-4 py-3 rounded bg-accent/5 border border-accent/20 mb-8">
+            <span className="text-accent/70 text-xs">You Need</span>
+            <span className="text-accent font-heading text-sm">
+              {needed} more {brand.tokenName}
+            </span>
+          </div>
+
+          <a
+            href="/dashboard"
+            className="block w-full py-3.5 text-sm tracking-[0.2em] rounded transition-all duration-300 btn-crimson text-center mb-3"
+          >
+            Acquire {brand.tokenName}
+          </a>
+          <button
+            onClick={onClose}
+            className="w-full py-3.5 text-sm tracking-[0.2em] rounded transition-all duration-300 btn-ghost-gold"
+          >
+            Go Back
+          </button>
+        </div>
       </motion.div>
     </motion.div>
   );

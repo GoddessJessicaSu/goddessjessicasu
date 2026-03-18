@@ -69,7 +69,7 @@ export default function Dashboard() {
       const res = await api.post("/deposit/initiate", {
         tierId: selectedTier.id,
       });
-      window.location.href = res.data.invoiceUrl;
+      window.open(res.data.invoiceUrl, "_blank");
     } catch (err: any) {
       setError(err.response?.data?.error || "Failed to initiate payment");
       setDepositPending(false);
