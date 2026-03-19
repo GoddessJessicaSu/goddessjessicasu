@@ -13,6 +13,7 @@ CMD ["npx", "tsx", "watch", "src/index.ts"]
 FROM base AS build
 COPY . .
 RUN npx prisma generate
+ENV NODE_OPTIONS="--max-old-space-size=512"
 RUN npx tsc
 
 FROM node:22-alpine AS production
