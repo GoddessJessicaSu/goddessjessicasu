@@ -117,10 +117,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>{brand.siteName}</title>
         <meta name="description" content={brand.tagline} />
       </head>
-      <body className="antialiased min-h-screen">
+      <body className="antialiased min-h-screen overflow-x-hidden">
         {/* 18+ Age Gate */}
         <AnimatePresence>
           {!ageVerified && (
