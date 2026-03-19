@@ -94,7 +94,7 @@ export default function Dashboard() {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.6 }}
-      className="max-w-5xl mx-auto px-8 py-16"
+      className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-16"
     >
       {/* Header */}
       <div className="mb-12">
@@ -112,7 +112,7 @@ export default function Dashboard() {
 
       {/* Balance Card */}
       <motion.div
-        className="card-luxury rounded-lg p-8 mb-8 relative overflow-hidden"
+        className="card-luxury rounded-lg p-5 sm:p-8 mb-8 relative overflow-hidden"
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.1 }}
@@ -125,7 +125,7 @@ export default function Dashboard() {
             Your Balance
           </p>
           <div className="flex items-baseline gap-4">
-            <span className="font-heading text-6xl md:text-7xl text-gold-shimmer leading-none">
+            <span className="font-heading text-4xl sm:text-6xl md:text-7xl text-gold-shimmer leading-none">
               {user.tokenBalance.toLocaleString()}
             </span>
             <span className="font-heading text-primary/50 text-lg tracking-[0.2em] uppercase">
@@ -188,7 +188,7 @@ export default function Dashboard() {
 
       {/* Buy Tokens */}
       <motion.div
-        className="card-luxury rounded-lg p-8 mb-8"
+        className="card-luxury rounded-lg p-5 sm:p-8 mb-8"
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.2 }}
@@ -211,7 +211,7 @@ export default function Dashboard() {
               <button
                 key={tier.id}
                 onClick={() => setSelectedTier(tier)}
-                className={`group relative flex flex-col items-center p-6 rounded-lg border transition-all duration-300 ${
+                className={`group relative flex flex-col items-center p-4 sm:p-6 rounded-lg border transition-all duration-300 ${
                   selectedTier?.id === tier.id
                     ? "border-primary bg-primary/8 glow-gold"
                     : "border-gold bg-vanta/50 hover:border-primary/50"
@@ -256,7 +256,7 @@ export default function Dashboard() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
           >
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
               <div>
                 <p className="text-foreground/35 text-xs tracking-[0.15em] uppercase mb-1">
                   You&apos;ll receive
@@ -266,23 +266,23 @@ export default function Dashboard() {
                     <span className="font-heading text-lg text-accent/50 line-through decoration-accent/60 mr-2">
                       {selectedTier.tokenAmount.toLocaleString()}
                     </span>
-                    <span className="font-heading text-3xl text-gold-shimmer">
+                    <span className="font-heading text-2xl sm:text-3xl text-gold-shimmer">
                       {selectedTier.promoTokenAmount.toLocaleString()}{" "}
                       <span className="text-lg">{brand.tokenName}</span>
                     </span>
                   </div>
                 ) : (
-                  <span className="font-heading text-3xl text-gold-shimmer">
+                  <span className="font-heading text-2xl sm:text-3xl text-gold-shimmer">
                     {selectedTier.tokenAmount.toLocaleString()}{" "}
                     <span className="text-lg">{brand.tokenName}</span>
                   </span>
                 )}
               </div>
-              <div className="text-right">
+              <div className="sm:text-right">
                 <p className="text-foreground/35 text-xs tracking-[0.15em] uppercase mb-1">
                   Price
                 </p>
-                <span className="font-heading text-3xl text-foreground/90">
+                <span className="font-heading text-2xl sm:text-3xl text-foreground/90">
                   ${selectedTier.priceUsd}
                 </span>
               </div>
@@ -308,7 +308,7 @@ export default function Dashboard() {
 
       {/* Vault */}
       <motion.div
-        className="card-luxury rounded-lg p-8"
+        className="card-luxury rounded-lg p-5 sm:p-8"
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.3 }}
@@ -331,7 +331,7 @@ export default function Dashboard() {
             {vault.map((item, i) => (
               <motion.div
                 key={item.id}
-                className="flex items-center justify-between bg-vanta/60 rounded-lg p-4 border border-gold hover:border-primary/50 transition-all duration-300 group"
+                className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-vanta/60 rounded-lg p-4 border border-gold hover:border-primary/50 transition-all duration-300 group"
                 initial={{ x: -10, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
                 transition={{ delay: 0.35 + i * 0.05 }}

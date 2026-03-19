@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import Image from "next/image";
 import Link from "next/link";
 import { brand } from "@/lib/brand";
 
@@ -16,10 +17,15 @@ export default function Landing() {
       <section className="min-h-screen relative flex items-center overflow-hidden">
         {/* Background image */}
         <div className="absolute inset-0">
-          <img
+          <Image
             src="/hero-bg.jpg"
             alt=""
-            className="w-full h-full object-cover opacity-50"
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover opacity-50"
+            placeholder="blur"
+            blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDACgcHiMeGSgjISMtKygwPGRBPDc3PHtYXUlkkYCZlo+AjIqgtObDoKrarYqMyP/L2u71////m8H////6/+b9//j/2wBDASstLTw1PHZBQXb4pYyl+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj/wAARCAAIABADASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwCaZTJA4XrjilghkWNQzblIzgjkUUUhn//Z"
           />
           {/* Top-left fade for text readability */}
           <div className="absolute inset-0 bg-gradient-to-r from-vanta/70 via-transparent to-transparent w-1/2" />
@@ -32,7 +38,7 @@ export default function Landing() {
           <div className="absolute inset-0 bg-radial-[ellipse_at_55%_55%] from-primary/4 via-transparent to-transparent" />
         </div>
 
-        <div className="relative z-10 w-full px-96 pb-32 -mt-12">
+        <div className="relative z-10 w-full px-6 sm:px-12 lg:px-24 xl:px-48 2xl:px-96 pb-16 sm:pb-24 lg:pb-32 -mt-12">
           <div className="max-w-lg">
             {/* Decorative line */}
             <motion.div
@@ -107,7 +113,7 @@ export default function Landing() {
       <div className="divider-gold" />
 
       {/* How It Works */}
-      <section className="max-w-5xl mx-auto px-8 py-32">
+      <section className="max-w-5xl mx-auto px-6 sm:px-8 py-16 sm:py-24 lg:py-32">
         <motion.div
           className="text-center mb-16"
           initial={{ opacity: 0 }}
@@ -147,7 +153,7 @@ export default function Landing() {
       <div className="divider-gold" />
 
       {/* Custom Video CTA */}
-      <section className="max-w-5xl mx-auto px-8 py-32 text-center">
+      <section className="max-w-5xl mx-auto px-6 sm:px-8 py-16 sm:py-24 lg:py-32 text-center">
         <motion.div
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}

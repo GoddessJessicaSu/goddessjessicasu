@@ -77,10 +77,10 @@ export default function Gallery() {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.6 }}
-      className="max-w-7xl mx-auto px-8 py-16"
+      className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-16"
     >
       {/* Header */}
-      <div className="mb-16">
+      <div className="mb-8 sm:mb-16">
         <p className="font-heading text-primary/50 text-xs tracking-[0.4em] uppercase mb-4">
           The Collection
         </p>
@@ -105,7 +105,7 @@ export default function Gallery() {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
           {media.map((item, i) => (
             <MediaCard
               key={item.id}
@@ -520,7 +520,7 @@ function Lightbox({
       </div>
 
       {/* Main image */}
-      <div className="relative z-10 w-full max-w-4xl mx-8 aspect-[4/3] flex items-center justify-center">
+      <div className="relative z-10 w-full max-w-4xl mx-4 sm:mx-8 aspect-[4/3] flex items-center justify-center">
         <AnimatePresence mode="wait" custom={direction}>
           <motion.img
             key={index}
@@ -588,7 +588,7 @@ function Lightbox({
 
       {/* Thumbnail strip at bottom */}
       {urls.length > 1 && (
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 flex gap-2 p-2 rounded-lg bg-vanta/60 backdrop-blur-sm border border-gold/20">
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 flex gap-1.5 sm:gap-2 p-1.5 sm:p-2 rounded-lg bg-vanta/60 backdrop-blur-sm border border-gold/20 max-w-[90vw] overflow-x-auto">
           {urls.map((url, i) => (
             <button
               key={i}
@@ -597,7 +597,7 @@ function Lightbox({
                 setDirection(i > index ? 1 : -1);
                 setIndex(i);
               }}
-              className={`w-12 h-12 rounded overflow-hidden transition-all duration-300 ${
+              className={`w-9 h-9 sm:w-12 sm:h-12 rounded overflow-hidden transition-all duration-300 flex-shrink-0 ${
                 i === index
                   ? "ring-2 ring-primary brightness-100 scale-110"
                   : "brightness-50 hover:brightness-75"

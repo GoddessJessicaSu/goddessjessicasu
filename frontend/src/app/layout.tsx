@@ -8,11 +8,78 @@ import { brand } from "@/lib/brand";
 import api from "@/lib/api";
 import "./globals.css";
 
+function MobileMenu({
+  isLoggedIn,
+  displayName,
+  onSignOut,
+  onClose,
+}: {
+  isLoggedIn: boolean;
+  displayName: string | null;
+  onSignOut: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <motion.div
+      className="fixed inset-0 z-[60] md:hidden"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+    >
+      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
+      <motion.div
+        className="absolute top-0 right-0 w-64 h-full bg-vanta border-l border-gold/20 p-6 pt-20 flex flex-col gap-6"
+        initial={{ x: "100%" }}
+        animate={{ x: 0 }}
+        exit={{ x: "100%" }}
+        transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+      >
+        {isLoggedIn && (
+          <>
+            {displayName && (
+              <span className="text-primary/60 text-xs tracking-[0.15em] font-heading">
+                {displayName}
+              </span>
+            )}
+            <Link href="/about" onClick={onClose} className="nav-link text-foreground/50 hover:text-primary text-sm tracking-[0.15em] uppercase">
+              About
+            </Link>
+            <Link href="/gallery" onClick={onClose} className="nav-link text-foreground/50 hover:text-primary text-sm tracking-[0.15em] uppercase">
+              Masterpieces
+            </Link>
+            <Link href="/dashboard" onClick={onClose} className="nav-link text-foreground/50 hover:text-primary text-sm tracking-[0.15em] uppercase">
+              Dashboard
+            </Link>
+            <div className="w-full h-px bg-gold/10" />
+            <button
+              onClick={() => { onSignOut(); onClose(); }}
+              className="nav-link text-foreground/50 hover:text-primary text-sm tracking-[0.15em] uppercase text-left"
+            >
+              Sign Out
+            </button>
+          </>
+        )}
+        {!isLoggedIn && (
+          <Link href="/auth/magic-link" onClick={onClose} className="nav-link text-foreground/50 hover:text-primary text-sm tracking-[0.15em] uppercase">
+            Sign In
+          </Link>
+        )}
+      </motion.div>
+    </motion.div>
+  );
+}
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [displayName, setDisplayName] = useState<string | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [ageVerified, setAgeVerified] = useState(true); // default true to avoid flash
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [pathname]);
 
   useEffect(() => {
     const verified = localStorage.getItem("age_verified");
@@ -110,11 +177,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </AnimatePresence>
 
         <nav className="fixed top-0 w-full z-50 bg-vanta/90 backdrop-blur-xl border-b border-gold">
-          <div className="w-full px-96 h-18 flex items-center justify-between">
+          <div className="w-full px-4 sm:px-8 lg:px-16 xl:px-32 2xl:px-96 h-18 flex items-center justify-between">
             <Link href="/" className="opacity-80 hover:opacity-100 transition-opacity duration-300">
-              <img src="/logo.svg" alt="Goddess Jessica Su" className="h-12 w-auto" />
+              <img src="/logo.svg" alt="Goddess Jessica Su" className="h-10 md:h-12 w-auto" />
             </Link>
-            <div className="flex gap-8 items-center text-[11px] font-sans font-light tracking-[0.2em] uppercase">
+
+            {/* Desktop nav */}
+            <div className="hidden md:flex gap-8 items-center text-[11px] font-sans font-light tracking-[0.2em] uppercase">
               {isLoggedIn && (
                 <>
                   <Link href="/about" className="nav-link text-foreground/40 hover:text-primary">
@@ -148,8 +217,34 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 </Link>
               )}
             </div>
+
+            {/* Mobile hamburger */}
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="md:hidden w-10 h-10 flex items-center justify-center text-foreground/50 hover:text-primary transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                {mobileMenuOpen ? (
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                ) : (
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                )}
+              </svg>
+            </button>
           </div>
         </nav>
+
+        {/* Mobile menu drawer */}
+        <AnimatePresence>
+          {mobileMenuOpen && (
+            <MobileMenu
+              isLoggedIn={isLoggedIn}
+              displayName={displayName}
+              onSignOut={handleSignOut}
+              onClose={() => setMobileMenuOpen(false)}
+            />
+          )}
+        </AnimatePresence>
         <main className="pt-18">
           <AnimatePresence mode="wait">
             <div key={pathname}>
