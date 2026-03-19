@@ -154,7 +154,7 @@ export function useFileUpload() {
     async (tasks: {
       previewImages: { file: File; assetId: string }[];
       previewClip?: { file: File; url: string };
-      product:
+      product?:
         | { mode: "single"; file: File; url: string }
         | { mode: "multipart"; file: File; info: MultipartUploadInfo };
     }) => {
@@ -172,11 +172,13 @@ export function useFileUpload() {
       if (tasks.previewClip) {
         allItems.push({ label: `Clip: ${tasks.previewClip.file.name}`, status: "waiting", progress: 0 });
       }
-      allItems.push({
-        label: `Product: ${tasks.product.file.name}`,
-        status: "waiting",
-        progress: 0,
-      });
+      if (tasks.product) {
+        allItems.push({
+          label: `Product: ${tasks.product.file.name}`,
+          status: "waiting",
+          progress: 0,
+        });
+      }
       setItems(allItems);
       setOverallProgress(0);
 
@@ -197,7 +199,7 @@ export function useFileUpload() {
         }
 
         // Upload product
-        if (!cancelledRef.current) {
+        if (tasks.product && !cancelledRef.current) {
           if (tasks.product.mode === "single") {
             await uploadSingleFile(tasks.product.url, tasks.product.file, idx, controller);
           } else {

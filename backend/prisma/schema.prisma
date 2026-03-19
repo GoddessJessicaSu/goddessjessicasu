@@ -81,9 +81,10 @@ model Media {
   title         String
   description   String?
   priceTokens   Float
-  minioKey      String
-  previewKey    String?
-  mimeType      String
+  minioKey          String
+  originalFilename  String?
+  previewKey        String?
+  mimeType          String
   durationSecs  Int?
   isPublished   Boolean      @default(false)
   sortOrder     Int          @default(0)

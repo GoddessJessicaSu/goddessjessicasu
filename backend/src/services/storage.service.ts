@@ -30,10 +30,13 @@ function fullKey(prefix: StoragePrefix, objectKey: string): string {
   return `${config.storj.prefixes[prefix]}/${objectKey}`;
 }
 
-export async function getPresignedUrl(prefix: StoragePrefix, objectKey: string): Promise<string> {
+export async function getPresignedUrl(prefix: StoragePrefix, objectKey: string, downloadFilename?: string): Promise<string> {
   const command = new GetObjectCommand({
     Bucket: config.storj.bucket,
     Key: fullKey(prefix, objectKey),
+    ...(downloadFilename && {
+      ResponseContentDisposition: `attachment; filename="${downloadFilename}"`,
+    }),
   });
   return getSignedUrl(s3, command, { expiresIn: config.storj.presignExpiry });
 }

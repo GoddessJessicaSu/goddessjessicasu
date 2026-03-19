@@ -20,6 +20,8 @@ export default function AddMediaForm({ onCreated }: AddMediaFormProps) {
   const [previewImages, setPreviewImages] = useState<File[]>([]);
   const [previewClipFile, setPreviewClipFile] = useState<File | null>(null);
   const [productFile, setProductFile] = useState<File | null>(null);
+  const [storjKey, setStorjKey] = useState("");
+  const [useStorjKey, setUseStorjKey] = useState(false);
 
   const [submitting, setSubmitting] = useState(false);
 
@@ -35,8 +37,9 @@ export default function AddMediaForm({ onCreated }: AddMediaFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!title.trim() || !priceTokens || previewImages.length === 0 || !productFile) {
-      alert("Title, price, at least 1 preview image, and product file are required.");
+    const needsProductFile = useStorjKey ? !storjKey.trim() : !productFile;
+    if (!title.trim() || !priceTokens || previewImages.length === 0 || needsProductFile) {
+      alert("Title, price, at least 1 preview image, and product file (or Storj key) are required.");
       return;
     }
 
@@ -44,14 +47,21 @@ export default function AddMediaForm({ onCreated }: AddMediaFormProps) {
 
     try {
       // 1. Create media record and get presigned URLs
+      const productFileName = useStorjKey
+        ? storjKey.trim().split("/").pop() || storjKey.trim()
+        : productFile!.name;
+      const productMime = useStorjKey
+        ? (storjKey.trim().endsWith(".mov") ? "video/quicktime" : "video/mp4")
+        : (productFile!.type || "application/octet-stream");
+
       const res = await api.post("/admin/media", {
         title: title.trim(),
         description: description.trim() || undefined,
         priceTokens: parseFloat(priceTokens),
         productFile: {
-          name: productFile.name,
-          size: productFile.size,
-          mimeType: productFile.type || "application/octet-stream",
+          name: productFileName,
+          size: useStorjKey ? 0 : productFile!.size,
+          mimeType: productMime,
         },
         previewClip: previewClipFile
           ? {
@@ -61,13 +71,14 @@ export default function AddMediaForm({ onCreated }: AddMediaFormProps) {
             }
           : undefined,
         previewImageCount: previewImages.length,
+        ...(useStorjKey && { storjKey: storjKey.trim() }),
       });
 
       const { media, productUpload, previewClipUpload, previewImageAssets } =
         res.data;
 
       // Track multipart for cancel
-      if (productUpload.mode === "multipart") {
+      if (productUpload?.mode === "multipart") {
         setMultipartState({
           mediaId: media.id,
           uploadId: productUpload.uploadId,
@@ -82,19 +93,22 @@ export default function AddMediaForm({ onCreated }: AddMediaFormProps) {
           assetId: u.assetId,
         }));
 
-      const productTask =
-        productUpload.mode === "single"
-          ? { mode: "single" as const, file: productFile, url: productUpload.url }
-          : {
-              mode: "multipart" as const,
-              file: productFile,
-              info: {
-                mediaId: media.id,
-                uploadId: productUpload.uploadId,
-                partUrls: productUpload.partUrls,
-                chunkSize: productUpload.chunkSize,
-              },
-            };
+      let productTask: any = undefined;
+      if (!useStorjKey && productUpload) {
+        productTask =
+          productUpload.mode === "single"
+            ? { mode: "single" as const, file: productFile!, url: productUpload.url }
+            : {
+                mode: "multipart" as const,
+                file: productFile!,
+                info: {
+                  mediaId: media.id,
+                  uploadId: productUpload.uploadId,
+                  partUrls: productUpload.partUrls,
+                  chunkSize: productUpload.chunkSize,
+                },
+              };
+      }
 
       // 3. Upload all files
       const success = await uploadFiles({
@@ -102,7 +116,7 @@ export default function AddMediaForm({ onCreated }: AddMediaFormProps) {
         previewClip: previewClipUpload && previewClipFile
           ? { file: previewClipFile, url: previewClipUpload.url }
           : undefined,
-        product: productTask,
+        ...(productTask && { product: productTask }),
       });
 
       if (success) {
@@ -113,6 +127,8 @@ export default function AddMediaForm({ onCreated }: AddMediaFormProps) {
         setPreviewImages([]);
         setPreviewClipFile(null);
         setProductFile(null);
+        setStorjKey("");
+        setUseStorjKey(false);
         setMultipartState(null);
         onCreated();
       }
@@ -202,10 +218,24 @@ export default function AddMediaForm({ onCreated }: AddMediaFormProps) {
 
         {/* Product File — required, up to 5GB */}
         <div className="mb-4">
-          <label className="text-white/50 text-sm block mb-2">
-            Product File
-          </label>
-          {productFile ? (
+          <div className="flex items-center gap-3 mb-2">
+            <label className="text-white/50 text-sm">Product File</label>
+            <button
+              type="button"
+              onClick={() => { setUseStorjKey(!useStorjKey); setProductFile(null); setStorjKey(""); }}
+              className="text-xs text-primary/70 hover:text-primary underline"
+            >
+              {useStorjKey ? "Upload file instead" : "Use Storj key instead"}
+            </button>
+          </div>
+          {useStorjKey ? (
+            <input
+              value={storjKey}
+              onChange={(e) => setStorjKey(e.target.value)}
+              placeholder="a3f9bc12_video.mp4 (key without products/ prefix)"
+              className="w-full px-3 py-2 bg-black border border-white/10 rounded text-white text-sm font-mono"
+            />
+          ) : productFile ? (
             <div className="flex items-center gap-3 bg-white/5 rounded p-3 border border-white/10">
               <span className="text-white/70 text-sm truncate">
                 {productFile.name}

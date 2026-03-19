@@ -13,6 +13,16 @@ import {
 } from '../services/storage.service';
 import { asyncHandler } from '../middleware/async-handler';
 import crypto from 'crypto';
+
+function shortKey(filename: string): string {
+  const id = crypto.randomBytes(4).toString('hex');
+  return `${id}_${filename}`;
+}
+
+function sanitize(name: string): string {
+  return name.replace(/[^a-zA-Z0-9_-]/g, '_').replace(/_+/g, '_').toLowerCase();
+}
+
 export const adminRoutes = Router();
 adminRoutes.use(authMiddleware);
 adminRoutes.use(adminMiddleware);
@@ -24,9 +34,9 @@ const CHUNK_SIZE = 100 * 1024 * 1024; // 100MB per part
 
 // Create media entry + get upload URLs
 adminRoutes.post('/media', asyncHandler(async (req, res) => {
-  const { title, description, priceTokens, productFile, previewClip, previewImageCount = 1 } = req.body;
+  const { title, description, priceTokens, productFile, previewClip, previewImageCount = 1, storjKey } = req.body;
 
-  if (!title || priceTokens == null || !productFile?.name || !productFile?.size || !productFile?.mimeType) {
+  if (!title || priceTokens == null || !productFile?.name || !productFile?.mimeType || (!storjKey && !productFile?.size)) {
     res.status(400).json({ error: 'title, priceTokens, and productFile (name, size, mimeType) required' });
     return;
   }
@@ -39,37 +49,50 @@ adminRoutes.post('/media', asyncHandler(async (req, res) => {
       title,
       description: description || null,
       priceTokens,
-      minioKey: crypto.randomUUID(),
-      previewKey: hasPreviewClip ? crypto.randomUUID() : null,
+      minioKey: storjKey || shortKey(productFile.name),
+      originalFilename: productFile.name,
+      previewKey: hasPreviewClip ? shortKey(previewClip.name) : null,
       mimeType: productFile.mimeType,
       durationSecs: null,
-      assets: {
-        create: Array.from({ length: count }, (_, i) => ({
-          objectKey: crypto.randomUUID(),
-          sortOrder: i,
-        })),
-      },
     },
+  });
+
+  const folder = `${media.id}_${sanitize(title)}`;
+
+  await prisma.mediaAsset.createMany({
+    data: Array.from({ length: count }, (_, i) => ({
+      mediaId: media.id,
+      objectKey: `${folder}/preview_${i}.webp`,
+      sortOrder: i,
+    })),
+  });
+
+  const mediaWithAssets = await prisma.media.findUniqueOrThrow({
+    where: { id: media.id },
     include: { assets: { orderBy: { sortOrder: 'asc' } } },
   });
 
-  // Product file upload — single or multipart
-  let productUpload: any;
-  if (productFile.size > MULTIPART_THRESHOLD) {
-    const uploadId = await initiateMultipartUpload('products', media.minioKey);
-    const totalParts = Math.ceil(productFile.size / CHUNK_SIZE);
-    const partUrls = await Promise.all(
-      Array.from({ length: totalParts }, (_, i) =>
-        getMultipartPartUrl('products', media.minioKey, uploadId, i + 1).then(url => ({
-          partNumber: i + 1,
-          url,
-        }))
-      )
-    );
-    productUpload = { mode: 'multipart', uploadId, partUrls, chunkSize: CHUNK_SIZE };
-  } else {
-    const url = await getUploadUrl('products', media.minioKey);
-    productUpload = { mode: 'single', url };
+  Object.assign(media, mediaWithAssets);
+
+  // Product file upload — skip if already uploaded to Storj via CLI
+  let productUpload: any = null;
+  if (!storjKey) {
+    if (productFile.size > MULTIPART_THRESHOLD) {
+      const uploadId = await initiateMultipartUpload('products', media.minioKey);
+      const totalParts = Math.ceil(productFile.size / CHUNK_SIZE);
+      const partUrls = await Promise.all(
+        Array.from({ length: totalParts }, (_, i) =>
+          getMultipartPartUrl('products', media.minioKey, uploadId, i + 1).then(url => ({
+            partNumber: i + 1,
+            url,
+          }))
+        )
+      );
+      productUpload = { mode: 'multipart', uploadId, partUrls, chunkSize: CHUNK_SIZE };
+    } else {
+      const url = await getUploadUrl('products', media.minioKey);
+      productUpload = { mode: 'single', url };
+    }
   }
 
   // Preview clip upload (optional)
@@ -277,7 +300,7 @@ adminRoutes.post('/media/:id/assets', asyncHandler(async (req, res) => {
       prisma.mediaAsset.create({
         data: {
           mediaId: media.id,
-          objectKey: crypto.randomUUID(),
+          objectKey: `${media.id}_${sanitize(media.title)}/preview_${maxSort + 1 + i}.webp`,
           sortOrder: maxSort + 1 + i,
         },
       })

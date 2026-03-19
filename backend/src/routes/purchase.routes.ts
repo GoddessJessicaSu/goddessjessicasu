@@ -73,7 +73,7 @@ purchaseRoutes.post('/:mediaId', authMiddleware, asyncHandler(async (req: AuthRe
     }),
   ]);
 
-  const downloadUrl = await getPresignedUrl('products', media.minioKey);
+  const downloadUrl = await getPresignedUrl('products', media.minioKey, media.originalFilename ?? undefined);
 
   // Send download email (non-blocking)
   sendPurchaseDownloadEmail(user.email, media.title, downloadUrl).catch((err) =>
