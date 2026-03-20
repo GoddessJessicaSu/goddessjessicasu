@@ -54,54 +54,38 @@ export default function Landing() {
         </div>
 
         <div className="relative z-10 w-full px-6 sm:px-12 lg:px-24 xl:px-48 2xl:px-96 pb-16 sm:pb-24 lg:pb-32 -mt-12">
-          <div className="max-w-lg">
-            {/* Decorative line */}
-            <motion.div
-              className="w-16 h-px bg-primary/50 mb-8"
-              initial={{ width: 0 }}
-              animate={{ width: 64 }}
-              transition={{ delay: 0.3, duration: 0.8 }}
-            />
+          <div className="max-w-md">
+            <div>
+              {/* Tagline — small, airy, sans-serif */}
+              <motion.div
+                className="flex justify-between font-sans font-light text-primary/60 text-[10px] tracking-[0.3em] uppercase mb-8"
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.2 }}
+              >
+                <span>Exclusive</span>
+                <span>&bull;</span>
+                <span>Elegant</span>
+                <span>&bull;</span>
+                <span>Empowered</span>
+                <span>&bull;</span>
+                <span>Eternal</span>
+              </motion.div>
 
-            {/* Tagline — small, airy, sans-serif */}
-            <motion.p
-              className="font-sans font-light text-primary/60 text-[10px] tracking-[0.45em] uppercase mb-8"
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.2 }}
-            >
-              Exclusive &bull; Untouchable &bull; Divine
-            </motion.p>
+              {/* Heading — signature calligraphy */}
+              <motion.h1
+                initial={{ y: 40, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.4, duration: 0.8 }}
+                className="mb-10"
+              >
+                <img
+                  src="/logo.svg"
+                  alt="Goddess Jessica Su"
+                  className="w-full h-auto"
+                />
+              </motion.h1>
 
-            {/* Heading — signature calligraphy */}
-            <motion.h1
-              initial={{ y: 40, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.4, duration: 0.8 }}
-              className="mb-10"
-            >
-              <img
-                src="/logo.svg"
-                alt="Goddess Jessica Su"
-                className="h-24 sm:h-28 md:h-36 lg:h-44 w-auto"
-              />
-            </motion.h1>
-
-            {/* Tagline with crypto-luxe styling */}
-            <motion.p
-              className="text-base md:text-lg text-foreground/40 max-w-md mb-12 leading-relaxed font-light flex items-center gap-3"
-              initial={{ y: 30, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.6 }}
-            >
-              <span>
-                Exclusive Content, Unlocked by{" "}
-                <span className="font-mono-tech text-primary/70">Crypto</span>
-              </span>
-              <span className="dot-live" />
-            </motion.p>
-
-            <div className="w-fit">
               <motion.div
                 className="flex flex-col sm:flex-row gap-5"
                 initial={{ y: 30, opacity: 0 }}
@@ -110,13 +94,13 @@ export default function Landing() {
               >
                 <Link
                   href="/gallery"
-                  className="btn-gold px-12 py-4 text-[11px] text-center"
+                  className="btn-gold flex-1 px-12 py-4 text-[11px] text-center"
                 >
                   Claim Access
                 </Link>
                 <Link
                   href="/dashboard"
-                  className="btn-ghost-gold px-12 py-4 text-[11px] text-center"
+                  className="btn-ghost-gold flex-1 px-12 py-4 text-[11px] text-center"
                 >
                   My Dashboard
                 </Link>
@@ -131,11 +115,11 @@ export default function Landing() {
                   transition={{ delay: 1.0, duration: 0.8 }}
                 >
                   <div className="w-full h-px bg-primary/20 mb-8" />
-                  <p className="font-sans font-light text-foreground/40 text-[9px] tracking-[0.5em] uppercase mb-6">
+                  <p className="font-sans font-light text-foreground/100 text-[9px] tracking-[0.5em] uppercase mb-6">
                     The {year} Crush Season
                   </p>
                   <div className="flex items-center justify-between">
-                    <p className="font-heading text-primary/70 text-xs sm:text-sm tracking-[0.2em] uppercase">
+                    <p className="font-heading text-primary/150 text-xs sm:text-sm tracking-[0.2em] uppercase">
                       Annual Body Count to Date
                     </p>
                     <span className="text-[#990000] font-heading text-4xl sm:text-5xl md:text-6xl leading-none">
