@@ -6,12 +6,23 @@ import { asyncHandler } from '../middleware/async-handler';
 
 export const galleryRoutes = Router();
 
+const GALLERY_PAGE_SIZE = 12;
+
 galleryRoutes.get('/', authMiddleware, asyncHandler(async (req: AuthRequest, res) => {
+  const cursor = req.query.cursor as string | undefined;
+  const take = GALLERY_PAGE_SIZE;
+
   const media = await prisma.media.findMany({
     where: { isPublished: true },
     orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
     include: { assets: { orderBy: { sortOrder: 'asc' } } },
+    take: take + 1, // fetch one extra to detect if there's a next page
+    ...(cursor && { cursor: { id: cursor }, skip: 1 }),
   });
+
+  const hasMore = media.length > take;
+  const page = hasMore ? media.slice(0, take) : media;
+  const nextCursor = hasMore ? page[page.length - 1].id : null;
 
   // If user is logged in, fetch their purchased media IDs
   let purchasedIds = new Set<string>();
@@ -24,7 +35,7 @@ galleryRoutes.get('/', authMiddleware, asyncHandler(async (req: AuthRequest, res
   }
 
   const items = await Promise.all(
-    media.map(async (m) => ({
+    page.map(async (m) => ({
       id: m.id,
       title: m.title,
       description: m.description,
@@ -39,5 +50,5 @@ galleryRoutes.get('/', authMiddleware, asyncHandler(async (req: AuthRequest, res
     }))
   );
 
-  res.json({ media: items });
+  res.json({ media: items, nextCursor });
 }));

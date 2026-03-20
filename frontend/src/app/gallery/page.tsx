@@ -20,7 +20,10 @@ interface MediaItem {
 export default function Gallery() {
   const [media, setMedia] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
   const [lightbox, setLightbox] = useState<{
     urls: string[];
     index: number;
@@ -39,19 +42,18 @@ export default function Gallery() {
     current: number;
   } | null>(null);
 
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      window.location.href = "/auth/magic-link";
-      return;
-    }
-    loadGallery();
-  }, []);
+  const loadGallery = useCallback((cursor?: string) => {
+    const isInitial = !cursor;
+    if (isInitial) setLoading(true);
+    else setLoadingMore(true);
 
-  const loadGallery = () => {
     api
-      .get("/gallery")
-      .then((res) => setMedia(res.data.media))
+      .get("/gallery", { params: cursor ? { cursor } : {} })
+      .then((res) => {
+        const { media: newItems, nextCursor: nc } = res.data;
+        setMedia((prev) => isInitial ? newItems : [...prev, ...newItems]);
+        setNextCursor(nc);
+      })
       .catch((err) => {
         if (err.response?.status === 401 || err.response?.status === 403) {
           window.location.href = "/auth/magic-link";
@@ -59,8 +61,38 @@ export default function Gallery() {
         }
         setError(err.response?.data?.error || "Failed to load gallery");
       })
-      .finally(() => setLoading(false));
-  };
+      .finally(() => {
+        if (isInitial) setLoading(false);
+        else setLoadingMore(false);
+      });
+  }, []);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      window.location.href = "/auth/magic-link";
+      return;
+    }
+    loadGallery();
+  }, [loadGallery]);
+
+  // Infinite scroll — load more when sentinel enters viewport
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && nextCursor && !loadingMore) {
+          loadGallery(nextCursor);
+        }
+      },
+      { rootMargin: "400px" },
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [nextCursor, loadingMore, loadGallery]);
 
   const openLightbox = (urls: string[], index: number, title: string) => {
     setLightbox({ urls, index, title });
@@ -68,6 +100,7 @@ export default function Gallery() {
 
   const handlePurchaseSuccess = (title: string) => {
     setSuccessModal({ title });
+    // Reload from scratch to refresh purchase state
     loadGallery();
   };
 
@@ -105,23 +138,35 @@ export default function Gallery() {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
-          {media.map((item, i) => (
-            <MediaCard
-              key={item.id}
-              item={item}
-              index={i}
-              onImageClick={openLightbox}
-              onReadMore={(title, desc) =>
-                setDescModal({ title, description: desc })
-              }
-              onPurchaseSuccess={handlePurchaseSuccess}
-              onInsufficientBalance={(title, required, current) =>
-                setInsufficientModal({ title, required, current })
-              }
-            />
-          ))}
-        </div>
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
+            {media.map((item, i) => (
+              <MediaCard
+                key={item.id}
+                item={item}
+                index={i}
+                onImageClick={openLightbox}
+                onReadMore={(title, desc) =>
+                  setDescModal({ title, description: desc })
+                }
+                onPurchaseSuccess={handlePurchaseSuccess}
+                onInsufficientBalance={(title, required, current) =>
+                  setInsufficientModal({ title, required, current })
+                }
+              />
+            ))}
+          </div>
+
+          {/* Infinite scroll sentinel */}
+          <div ref={sentinelRef} className="w-full h-1" />
+          {loadingMore && (
+            <div className="flex items-center justify-center py-12">
+              <div className="font-heading text-primary/30 text-sm tracking-[0.3em] uppercase">
+                Loading...
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {/* Lightbox */}

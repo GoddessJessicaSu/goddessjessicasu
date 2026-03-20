@@ -19,7 +19,7 @@ const authLimiter = rateLimit({
 });
 
 // Get current user
-authRoutes.get('/me', authMiddleware, asyncHandler(async (req: AuthRequest, res) => {
+authRoutes.get('/me', authLimiter, authMiddleware, asyncHandler(async (req: AuthRequest, res) => {
   const user = await prisma.user.findUnique({ where: { id: req.user!.id } });
   if (!user) {
     res.status(404).json({ error: 'User not found' });
@@ -37,7 +37,7 @@ authRoutes.get('/me', authMiddleware, asyncHandler(async (req: AuthRequest, res)
 }));
 
 // Set username
-authRoutes.put('/username', authMiddleware, asyncHandler(async (req: AuthRequest, res) => {
+authRoutes.put('/username', authLimiter, authMiddleware, asyncHandler(async (req: AuthRequest, res) => {
   const { username } = req.body;
   if (!username || typeof username !== 'string') {
     res.status(400).json({ error: 'Username is required' });
@@ -155,7 +155,7 @@ authRoutes.get('/verify', authLimiter, asyncHandler(async (req, res) => {
     });
   }
 
-  const jwtToken = jwt.sign({ userId: user.id }, config.jwtSecret, { expiresIn: '7d' });
+  const jwtToken = jwt.sign({ userId: user.id }, config.jwtSecret, { expiresIn: '24h' });
 
   // If user has no username, treat as needing setup
   const needsUsername = !user.username;
@@ -212,7 +212,7 @@ authRoutes.get('/poll', asyncHandler(async (req, res) => {
     return;
   }
 
-  const jwtToken = jwt.sign({ userId: user.id }, config.jwtSecret, { expiresIn: '7d' });
+  const jwtToken = jwt.sign({ userId: user.id }, config.jwtSecret, { expiresIn: '24h' });
   const needsUsername = !user.username;
 
   res.json({

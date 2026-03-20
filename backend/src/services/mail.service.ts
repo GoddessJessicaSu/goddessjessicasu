@@ -11,6 +11,15 @@ const tokenName = process.env.NEXT_PUBLIC_TOKEN_NAME || "GRACE";
 const primaryColor = process.env.NEXT_PUBLIC_PRIMARY_COLOR || "#D4AF37";
 const accentColor = process.env.NEXT_PUBLIC_ACCENT_COLOR || "#8B0000";
 
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 function emailWrapper(content: string): string {
   return `
 <!DOCTYPE html>
@@ -134,7 +143,7 @@ export async function sendPurchaseDownloadEmail(
         <span style="font-family: 'Georgia', 'Times New Roman', serif; font-size: 10px; letter-spacing: 3px; text-transform: uppercase; color: rgba(212,175,55,0.4);">Your Content</span>
       </td></tr>
       <tr><td align="center" style="padding-bottom: 24px;">
-        <span style="font-family: 'Georgia', 'Times New Roman', serif; font-size: 26px; color: ${primaryColor};">${mediaTitle}</span>
+        <span style="font-family: 'Georgia', 'Times New Roman', serif; font-size: 26px; color: ${primaryColor};">${escapeHtml(mediaTitle)}</span>
       </td></tr>
       <tr><td align="center" style="padding-bottom: 32px;">
         <div style="width: 40px; height: 1px; background-color: rgba(212,175,55,0.3);"></div>
@@ -204,7 +213,7 @@ export async function sendPurchaseDownloadEmail(
   const { error } = await resend.emails.send({
     from: config.resend.fromEmail,
     to: email,
-    subject: `Your download is ready — ${mediaTitle}`,
+    subject: `Your download is ready — ${escapeHtml(mediaTitle)}`,
     html,
   });
 

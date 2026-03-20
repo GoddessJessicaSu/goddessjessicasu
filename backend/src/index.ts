@@ -25,7 +25,7 @@ app.use('/api/webhooks', express.raw({ type: 'application/json' }), webhookRoute
 // Admin image upload needs raw body for Sharp processing — mount before express.json()
 app.use('/api/admin', express.raw({ type: ['image/*'], limit: '20mb' }), adminUploadRoutes);
 
-app.use(express.json());
+app.use(express.json({ limit: '1mb' }));
 app.use(requestLogger);
 
 app.use('/api/auth', authRoutes);
