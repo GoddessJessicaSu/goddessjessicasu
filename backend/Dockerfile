@@ -7,7 +7,7 @@ RUN npm ci
 FROM base AS dev
 COPY . .
 RUN npx prisma generate
-CMD ["npx", "tsx", "watch", "src/index.ts"]
+CMD ["sh", "-c", "npx prisma migrate dev --skip-generate && npx tsx watch src/index.ts"]
 
 # Production build
 FROM base AS build
@@ -26,4 +26,4 @@ COPY --from=build /app/node_modules/.prisma ./node_modules/.prisma
 RUN npx prisma generate
 RUN addgroup -g 1001 app && adduser -D -u 1001 -G app app
 USER app
-CMD ["node", "dist/index.js"]
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/index.js"]
