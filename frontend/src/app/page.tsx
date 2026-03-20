@@ -165,7 +165,13 @@ export default function Landing() {
             Desire something crafted exclusively for you? Commission a custom piece.
             Pricing in <span className="font-mono-tech text-primary/60">{brand.tokenName}</span> tokens.
           </p>
-          <div className="w-12 h-px bg-primary/20 mx-auto" />
+          <Link
+            href="/custom-videos"
+            className="btn-ghost-gold px-12 py-4 text-[11px] inline-block text-center"
+          >
+            Learn More
+          </Link>
+          <div className="w-12 h-px bg-primary/20 mx-auto mt-10" />
         </motion.div>
       </section>
     </motion.div>

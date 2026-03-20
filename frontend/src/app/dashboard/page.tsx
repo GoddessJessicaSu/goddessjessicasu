@@ -249,6 +249,23 @@ export default function Dashboard() {
           </p>
         )}
 
+        {/* Can't do crypto banner */}
+        <div className="mt-6 bg-vanta/80 rounded-lg p-5 border border-gold/20">
+          <p className="text-foreground/45 text-sm leading-relaxed">
+            <span className="text-primary font-heading text-xs tracking-[0.15em] uppercase">Can&apos;t use crypto?</span>
+            <br />
+            No worries &mdash; email me at{" "}
+            <a href="mailto:jessica@goddessjessicasu.art" className="text-primary hover:text-primary/80 transition-colors">
+              jessica@goddessjessicasu.art
+            </a>{" "}
+            or reach out on{" "}
+            <a href="/contact" className="text-primary hover:text-primary/80 transition-colors">
+              Telegram
+            </a>{" "}
+            and I&apos;ll top up your {brand.tokenName} manually.
+          </p>
+        </div>
+
         {/* Selected Tier Confirmation */}
         {selectedTier && (
           <motion.div

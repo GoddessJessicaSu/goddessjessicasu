@@ -195,10 +195,7 @@ export async function sendPurchaseDownloadEmail(
       <tr><td style="padding-bottom: 24px;">
         <div style="width: 100%; height: 1px; background-color: rgba(212,175,55,0.1);"></div>
       </td></tr>
-      <tr><td style="${bodyStyle} padding-bottom: 8px;">Also don't forget to join my telegram group:</td></tr>
-      <tr><td style="padding-bottom: 28px;">
-        <a href="https://t.me/+Y-GmDHbzgQwyNTIx" style="font-family: 'Georgia', 'Times New Roman', serif; font-size: 14px; color: ${primaryColor}; text-decoration: none;">https://t.me/goddessjessicasucrush</a>
-      </td></tr>
+      <tr><td style="${bodyStyle} padding-bottom: 28px;">Also don&rsquo;t forget to join my Telegram group &mdash; the link is on my <a href="${config.isDev ? "http://localhost:3000" : process.env.NEXT_PUBLIC_SITE_URL}/contact" style="color: ${primaryColor}; text-decoration: none;">Contact &amp; FAQ</a> page.</td></tr>
     </table>
 
     <!-- Signature -->

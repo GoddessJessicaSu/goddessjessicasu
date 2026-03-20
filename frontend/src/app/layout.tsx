@@ -51,6 +51,12 @@ function MobileMenu({
             <Link href="/dashboard" onClick={onClose} className="nav-link text-foreground/50 hover:text-primary text-sm tracking-[0.15em] uppercase">
               Dashboard
             </Link>
+            <Link href="/contact" onClick={onClose} className="nav-link text-foreground/50 hover:text-primary text-sm tracking-[0.15em] uppercase">
+              Contact &amp; FAQ
+            </Link>
+            <Link href="/custom-videos" onClick={onClose} className="nav-link text-foreground/50 hover:text-primary text-sm tracking-[0.15em] uppercase">
+              Custom Videos
+            </Link>
             <div className="w-full h-px bg-gold/10" />
             <button
               onClick={() => { onSignOut(); onClose(); }}
@@ -195,6 +201,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   </Link>
                   <Link href="/dashboard" className="nav-link text-foreground/40 hover:text-primary">
                     Dashboard
+                  </Link>
+                  <Link href="/contact" className="nav-link text-foreground/40 hover:text-primary">
+                    Contact &amp; FAQ
+                  </Link>
+                  <Link href="/custom-videos" className="nav-link text-foreground/40 hover:text-primary">
+                    Custom Videos
                   </Link>
                 </>
               )}
