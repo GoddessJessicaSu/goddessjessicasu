@@ -138,7 +138,7 @@ export default function Landing() {
                     <p className="font-heading text-primary/70 text-xs sm:text-sm tracking-[0.2em] uppercase">
                       Annual Body Count to Date
                     </p>
-                    <span className="text-[#990000] font-heading text-4xl sm:text-5xl md:text-6xl leading-none drop-shadow-[0_0_20px_rgba(153,0,0,0.45)]">
+                    <span className="text-[#990000] font-heading text-4xl sm:text-5xl md:text-6xl leading-none">
                       {bodyCount}
                     </span>
                   </div>
