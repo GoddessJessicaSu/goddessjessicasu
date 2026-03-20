@@ -32,7 +32,7 @@ export const config = {
       previewVideos: "preview-videos",
       products: "products",
     },
-    presignExpiry: parseInt(optional("STORJ_PRESIGN_EXPIRY", "86400"), 10),
+    presignExpiry: parseInt(optional("STORJ_PRESIGN_EXPIRY", "14400"), 10),
   },
 
   nowpayments: {
@@ -41,6 +41,8 @@ export const config = {
     callbackUrl: optional("NOWPAYMENTS_CALLBACK_URL", ""),
     apiBaseUrl: "https://api.nowpayments.io/v1",
   },
+
+  frontendUrl: optional("FRONTEND_URL", "http://localhost:3000"),
 
   logLevel: optional("LOG_LEVEL", "info"),
 

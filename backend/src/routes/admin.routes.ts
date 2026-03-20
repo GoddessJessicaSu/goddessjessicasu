@@ -23,6 +23,10 @@ function sanitize(name: string): string {
   return name.replace(/[^a-zA-Z0-9_-]/g, '_').replace(/_+/g, '_').toLowerCase();
 }
 
+function isValidPositiveNumber(val: unknown): val is number {
+  return typeof val === 'number' && Number.isFinite(val) && val >= 0;
+}
+
 export const adminRoutes = Router();
 adminRoutes.use(authMiddleware);
 adminRoutes.use(adminMiddleware);
@@ -38,6 +42,10 @@ adminRoutes.post('/media', asyncHandler(async (req, res) => {
 
   if (!title || priceTokens == null || !productFile?.name || !productFile?.mimeType || (!storjKey && !productFile?.size)) {
     res.status(400).json({ error: 'title, priceTokens, and productFile (name, size, mimeType) required' });
+    return;
+  }
+  if (!isValidPositiveNumber(priceTokens)) {
+    res.status(400).json({ error: 'priceTokens must be a non-negative finite number' });
     return;
   }
 
@@ -169,6 +177,11 @@ adminRoutes.get('/media', asyncHandler(async (_req, res) => {
 // Update media
 adminRoutes.put('/media/:id', asyncHandler(async (req, res) => {
   const { title, description, priceTokens, isPublished, durationSecs } = req.body;
+
+  if (priceTokens !== undefined && !isValidPositiveNumber(priceTokens)) {
+    res.status(400).json({ error: 'priceTokens must be a non-negative finite number' });
+    return;
+  }
 
   const media = await prisma.media.update({
     where: { id: req.params.id as string },
@@ -372,8 +385,8 @@ adminRoutes.get('/users', asyncHandler(async (_req, res) => {
 
 adminRoutes.put('/users/:id', asyncHandler(async (req, res) => {
   const { tokenBalance } = req.body;
-  if (tokenBalance == null || typeof tokenBalance !== 'number') {
-    res.status(400).json({ error: 'tokenBalance (number) is required' });
+  if (tokenBalance == null || !isValidPositiveNumber(tokenBalance)) {
+    res.status(400).json({ error: 'tokenBalance must be a non-negative finite number' });
     return;
   }
   const user = await prisma.user.update({
@@ -423,6 +436,10 @@ adminRoutes.post('/tiers', asyncHandler(async (req, res) => {
     res.status(400).json({ error: 'priceUsd and tokenAmount required' });
     return;
   }
+  if (!isValidPositiveNumber(priceUsd) || !isValidPositiveNumber(tokenAmount)) {
+    res.status(400).json({ error: 'priceUsd and tokenAmount must be non-negative finite numbers' });
+    return;
+  }
   const tier = await prisma.tokenTier.create({
     data: { priceUsd, tokenAmount, sortOrder: sortOrder ?? 0 },
   });
@@ -431,6 +448,14 @@ adminRoutes.post('/tiers', asyncHandler(async (req, res) => {
 
 adminRoutes.put('/tiers/:id', asyncHandler(async (req, res) => {
   const { priceUsd, tokenAmount, promoTokenAmount, isActive, sortOrder } = req.body;
+  if (priceUsd !== undefined && !isValidPositiveNumber(priceUsd)) {
+    res.status(400).json({ error: 'priceUsd must be a non-negative finite number' });
+    return;
+  }
+  if (tokenAmount !== undefined && !isValidPositiveNumber(tokenAmount)) {
+    res.status(400).json({ error: 'tokenAmount must be a non-negative finite number' });
+    return;
+  }
   const tier = await prisma.tokenTier.update({
     where: { id: req.params.id as string },
     data: {

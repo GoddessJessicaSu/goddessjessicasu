@@ -15,7 +15,9 @@ import { webhookRoutes } from './routes/webhook.routes';
 const app = express();
 
 app.use(helmet());
-app.use(cors());
+app.use(cors({
+  origin: config.frontendUrl,
+}));
 
 // Webhook route needs raw body for HMAC verification — mount before express.json()
 app.use('/api/webhooks', express.raw({ type: 'application/json' }), webhookRoutes);

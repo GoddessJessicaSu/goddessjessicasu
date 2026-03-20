@@ -26,4 +26,6 @@ COPY --from=build /app/.next/standalone ./
 COPY --from=build /app/.next/static ./.next/static
 COPY --from=build /app/public ./public
 ENV PORT=3000
+RUN addgroup -g 1001 app && adduser -D -u 1001 -G app app
+USER app
 CMD ["node", "server.js"]

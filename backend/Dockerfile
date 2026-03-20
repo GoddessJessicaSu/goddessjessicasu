@@ -24,4 +24,6 @@ COPY --from=build /app/dist ./dist
 COPY --from=build /app/prisma ./prisma
 COPY --from=build /app/node_modules/.prisma ./node_modules/.prisma
 RUN npx prisma generate
+RUN addgroup -g 1001 app && adduser -D -u 1001 -G app app
+USER app
 CMD ["node", "dist/index.js"]

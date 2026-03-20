@@ -1,11 +1,19 @@
 import { Router, Request, Response } from 'express';
+import rateLimit from 'express-rate-limit';
 import { prisma } from '../prisma';
 import { verifyIpnSignature } from '../services/nowpayments.service';
 import logger from '../logger';
 
 export const webhookRoutes = Router();
 
-webhookRoutes.post('/nowpayments', async (req: Request, res: Response) => {
+const webhookLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+webhookRoutes.post('/nowpayments', webhookLimiter, async (req: Request, res: Response) => {
   try {
     const signature = req.headers['x-nowpayments-sig'] as string | undefined;
     if (!signature) {

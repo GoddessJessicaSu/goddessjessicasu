@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import rateLimit from 'express-rate-limit';
 import { prisma } from '../prisma';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
 import { getPresignedUrl } from '../services/storage.service';
@@ -7,6 +8,14 @@ import { createServiceLogger } from '../logger';
 import { asyncHandler } from '../middleware/async-handler';
 
 const log = createServiceLogger('purchase');
+
+const purchaseLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests, please try again later' },
+});
 
 export const purchaseRoutes = Router();
 
@@ -29,7 +38,7 @@ purchaseRoutes.get('/vault', authMiddleware, asyncHandler(async (req: AuthReques
 }));
 
 // Purchase media
-purchaseRoutes.post('/:mediaId', authMiddleware, asyncHandler(async (req: AuthRequest, res) => {
+purchaseRoutes.post('/:mediaId', purchaseLimiter, authMiddleware, asyncHandler(async (req: AuthRequest, res) => {
   const mediaId = req.params.mediaId as string;
 
   const media = await prisma.media.findUnique({ where: { id: mediaId } });
@@ -53,25 +62,23 @@ purchaseRoutes.post('/:mediaId', authMiddleware, asyncHandler(async (req: AuthRe
     return;
   }
 
-  if (user.tokenBalance < media.priceTokens) {
+  // Atomic conditional update to prevent race condition (double-spend)
+  const result = await prisma.user.updateMany({
+    where: { id: user.id, tokenBalance: { gte: media.priceTokens } },
+    data: { tokenBalance: { decrement: media.priceTokens } },
+  });
+  if (result.count === 0) {
     res.status(400).json({ error: 'Insufficient balance', required: media.priceTokens, current: user.tokenBalance });
     return;
   }
 
-  // Atomic: deduct tokens + create purchase
-  await prisma.$transaction([
-    prisma.user.update({
-      where: { id: user.id },
-      data: { tokenBalance: { decrement: media.priceTokens } },
-    }),
-    prisma.purchase.create({
-      data: {
-        userId: user.id,
-        mediaId,
-        tokensSpent: media.priceTokens,
-      },
-    }),
-  ]);
+  await prisma.purchase.create({
+    data: {
+      userId: user.id,
+      mediaId,
+      tokensSpent: media.priceTokens,
+    },
+  });
 
   const downloadUrl = await getPresignedUrl('products', media.minioKey, media.originalFilename ?? undefined);
 

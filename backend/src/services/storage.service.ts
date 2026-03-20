@@ -35,7 +35,7 @@ export async function getPresignedUrl(prefix: StoragePrefix, objectKey: string, 
     Bucket: config.storj.bucket,
     Key: fullKey(prefix, objectKey),
     ...(downloadFilename && {
-      ResponseContentDisposition: `attachment; filename="${downloadFilename}"`,
+      ResponseContentDisposition: `attachment; filename="${downloadFilename.replace(/["\\\r\n]/g, '_')}"`,
     }),
   });
   return getSignedUrl(s3, command, { expiresIn: config.storj.presignExpiry });

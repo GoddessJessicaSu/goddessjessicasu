@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
+import rateLimit from 'express-rate-limit';
 import { prisma } from '../prisma';
 import { config } from '../config';
 import { sendMagicLinkEmail } from '../services/mail.service';
@@ -8,6 +9,14 @@ import { authMiddleware, AuthRequest } from '../middleware/auth';
 import { asyncHandler } from '../middleware/async-handler';
 
 export const authRoutes = Router();
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests, please try again later' },
+});
 
 // Get current user
 authRoutes.get('/me', authMiddleware, asyncHandler(async (req: AuthRequest, res) => {
@@ -65,7 +74,7 @@ authRoutes.put('/username', authMiddleware, asyncHandler(async (req: AuthRequest
 }));
 
 // Request magic link
-authRoutes.post('/request', asyncHandler(async (req, res) => {
+authRoutes.post('/request', authLimiter, asyncHandler(async (req, res) => {
   const { email } = req.body;
   if (!email || typeof email !== 'string') {
     res.status(400).json({ error: 'Email is required' });
@@ -105,7 +114,7 @@ authRoutes.post('/request', asyncHandler(async (req, res) => {
 }));
 
 // Verify magic link
-authRoutes.get('/verify', asyncHandler(async (req, res) => {
+authRoutes.get('/verify', authLimiter, asyncHandler(async (req, res) => {
   const { token } = req.query;
   if (!token || typeof token !== 'string') {
     res.status(400).json({ error: 'Token is required' });
@@ -146,7 +155,7 @@ authRoutes.get('/verify', asyncHandler(async (req, res) => {
     });
   }
 
-  const jwtToken = jwt.sign({ userId: user.id }, config.jwtSecret, { expiresIn: '30d' });
+  const jwtToken = jwt.sign({ userId: user.id }, config.jwtSecret, { expiresIn: '7d' });
 
   // If user has no username, treat as needing setup
   const needsUsername = !user.username;
@@ -184,6 +193,18 @@ authRoutes.get('/poll', asyncHandler(async (req, res) => {
     return;
   }
 
+  // One-time-use: JWT already issued via poll
+  if (magicLink.polledAt) {
+    res.status(400).json({ error: 'Token already consumed' });
+    return;
+  }
+
+  // Mark as polled so JWT can only be issued once via this endpoint
+  await prisma.magicLink.update({
+    where: { id: magicLink.id },
+    data: { polledAt: new Date() },
+  });
+
   // Link was used — find the user and issue a JWT
   const user = await prisma.user.findUnique({ where: { email: magicLink.email } });
   if (!user) {
@@ -191,7 +212,7 @@ authRoutes.get('/poll', asyncHandler(async (req, res) => {
     return;
   }
 
-  const jwtToken = jwt.sign({ userId: user.id }, config.jwtSecret, { expiresIn: '30d' });
+  const jwtToken = jwt.sign({ userId: user.id }, config.jwtSecret, { expiresIn: '7d' });
   const needsUsername = !user.username;
 
   res.json({

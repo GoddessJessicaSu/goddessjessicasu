@@ -26,6 +26,7 @@ model MagicLink {
   email      String
   token      String    @unique
   usedAt     DateTime?
+  polledAt   DateTime?
   expiresAt  DateTime
   createdAt  DateTime  @default(now())
 
