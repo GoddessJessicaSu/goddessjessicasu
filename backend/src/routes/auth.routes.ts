@@ -10,16 +10,26 @@ import { asyncHandler } from '../middleware/async-handler';
 
 export const authRoutes = Router();
 
+// Strict limiter for login-related endpoints (magic link request/verify)
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
+  windowMs: 15 * 60 * 1000,
   max: 10,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many requests, please try again later' },
 });
 
+// Relaxed limiter for authenticated endpoints that get called on every page load
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests, please try again later' },
+});
+
 // Get current user
-authRoutes.get('/me', authLimiter, authMiddleware, asyncHandler(async (req: AuthRequest, res) => {
+authRoutes.get('/me', apiLimiter, authMiddleware, asyncHandler(async (req: AuthRequest, res) => {
   const user = await prisma.user.findUnique({ where: { id: req.user!.id } });
   if (!user) {
     res.status(404).json({ error: 'User not found' });
@@ -37,7 +47,7 @@ authRoutes.get('/me', authLimiter, authMiddleware, asyncHandler(async (req: Auth
 }));
 
 // Set username
-authRoutes.put('/username', authLimiter, authMiddleware, asyncHandler(async (req: AuthRequest, res) => {
+authRoutes.put('/username', apiLimiter, authMiddleware, asyncHandler(async (req: AuthRequest, res) => {
   const { username } = req.body;
   if (!username || typeof username !== 'string') {
     res.status(400).json({ error: 'Username is required' });
