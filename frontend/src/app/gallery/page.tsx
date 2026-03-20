@@ -23,6 +23,7 @@ export default function Gallery() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [tokenBalance, setTokenBalance] = useState<number | null>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const [lightbox, setLightbox] = useState<{
     urls: string[];
@@ -67,6 +68,10 @@ export default function Gallery() {
       });
   }, []);
 
+  const fetchBalance = useCallback(() => {
+    api.get("/auth/me").then((res) => setTokenBalance(res.data.user.tokenBalance)).catch(() => {});
+  }, []);
+
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -74,7 +79,8 @@ export default function Gallery() {
       return;
     }
     loadGallery();
-  }, [loadGallery]);
+    fetchBalance();
+  }, [loadGallery, fetchBalance]);
 
   // Infinite scroll — load more when sentinel enters viewport
   useEffect(() => {
@@ -98,10 +104,12 @@ export default function Gallery() {
     setLightbox({ urls, index, title });
   };
 
-  const handlePurchaseSuccess = (title: string) => {
+  const handlePurchaseSuccess = (mediaId: string, title: string, priceTokens: number) => {
     setSuccessModal({ title });
-    // Reload from scratch to refresh purchase state
-    loadGallery();
+    // Update purchased state in-place — no scroll reset
+    setMedia((prev) => prev.map((m) => m.id === mediaId ? { ...m, purchased: true } : m));
+    // Update balance
+    setTokenBalance((prev) => prev !== null ? prev - priceTokens : null);
   };
 
   return (
@@ -113,14 +121,23 @@ export default function Gallery() {
       className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-16"
     >
       {/* Header */}
-      <div className="mb-8 sm:mb-16">
-        <p className="font-heading text-primary/50 text-xs tracking-[0.4em] uppercase mb-4">
-          The Collection
-        </p>
-        <h1 className="font-heading text-4xl md:text-5xl text-gold-shimmer">
-          Masterpieces
-        </h1>
-        <div className="w-16 h-px bg-primary/30 mt-6" />
+      <div className="mb-8 sm:mb-16 flex items-start justify-between">
+        <div>
+          <p className="font-heading text-primary/50 text-xs tracking-[0.4em] uppercase mb-4">
+            The Collection
+          </p>
+          <h1 className="font-heading text-4xl md:text-5xl text-gold-shimmer">
+            Masterpieces
+          </h1>
+          <div className="w-16 h-px bg-primary/30 mt-6" />
+        </div>
+        {tokenBalance !== null && (
+          <div className="flex-shrink-0 ml-4 mt-2 px-4 py-2 bg-vanta/60 border border-gold/20 rounded">
+            <span className="font-heading text-primary/60 text-xs tracking-[0.15em]">
+              {tokenBalance} {brand.tokenName}
+            </span>
+          </div>
+        )}
       </div>
 
       {loading ? (
@@ -149,7 +166,7 @@ export default function Gallery() {
                 onReadMore={(title, desc) =>
                   setDescModal({ title, description: desc })
                 }
-                onPurchaseSuccess={handlePurchaseSuccess}
+                onPurchaseSuccess={(title: string) => handlePurchaseSuccess(item.id, title, item.priceTokens)}
                 onInsufficientBalance={(title, required, current) =>
                   setInsufficientModal({ title, required, current })
                 }

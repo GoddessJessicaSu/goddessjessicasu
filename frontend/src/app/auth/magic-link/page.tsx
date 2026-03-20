@@ -5,15 +5,19 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import api from "@/lib/api";
 import UsernameSetupModal from "@/components/UsernameSetupModal";
 
+const LINK_EXPIRY_MS = 15 * 60 * 1000; // 15 minutes
+
 export default function MagicLink() {
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
   const [linkId, setLinkId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [expired, setExpired] = useState(false);
   const [showUsernameSetup, setShowUsernameSetup] = useState(false);
   const [verifiedEmail, setVerifiedEmail] = useState("");
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,7 +45,7 @@ export default function MagicLink() {
     }
   }, []);
 
-  // Poll for magic link verification
+  // Poll for magic link verification with 15-minute timeout
   useEffect(() => {
     if (!linkId) return;
 
@@ -50,6 +54,7 @@ export default function MagicLink() {
         const res = await api.get(`/auth/poll?linkId=${linkId}`);
         if (res.data.status === "verified") {
           if (pollRef.current) clearInterval(pollRef.current);
+          if (timeoutRef.current) clearTimeout(timeoutRef.current);
           handleVerified(res.data);
         }
       } catch {
@@ -57,10 +62,22 @@ export default function MagicLink() {
       }
     }, 3000);
 
+    timeoutRef.current = setTimeout(() => {
+      if (pollRef.current) clearInterval(pollRef.current);
+      setExpired(true);
+    }, LINK_EXPIRY_MS);
+
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
   }, [linkId, handleVerified]);
+
+  const handleResend = () => {
+    setExpired(false);
+    setSent(false);
+    setLinkId(null);
+  };
 
   const handleUsernameComplete = () => {
     window.location.href = "/dashboard";
@@ -113,13 +130,27 @@ export default function MagicLink() {
               Click the link in your email to sign in. It expires in 15 minutes.
             </p>
 
-            {/* Waiting indicator */}
-            <div className="flex items-center justify-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-primary/40 animate-pulse" />
-              <span className="text-foreground/20 text-[10px] tracking-[0.2em] uppercase font-heading">
-                Waiting for verification
-              </span>
-            </div>
+            {/* Waiting / Expired indicator */}
+            {expired ? (
+              <div className="text-center">
+                <p className="text-accent/70 text-xs mb-4">
+                  This link has expired.
+                </p>
+                <button
+                  onClick={handleResend}
+                  className="text-primary/60 hover:text-primary text-xs tracking-[0.15em] uppercase transition-colors duration-300"
+                >
+                  Send a new link
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary/40 animate-pulse" />
+                <span className="text-foreground/20 text-[10px] tracking-[0.2em] uppercase font-heading">
+                  Waiting for verification
+                </span>
+              </div>
+            )}
           </motion.div>
         ) : (
           <motion.form
