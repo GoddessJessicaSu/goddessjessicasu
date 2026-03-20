@@ -1,5 +1,6 @@
 services:
   backend:
+    image: ghcr.io/goddessjessicasu/backend:latest
     build:
       context: ./backend
       target: production
@@ -11,6 +12,7 @@ services:
       - DATABASE_URL=file:/app/data/prod.db
 
   frontend:
+    image: ghcr.io/goddessjessicasu/frontend:latest
     build:
       context: ./frontend
       target: production
