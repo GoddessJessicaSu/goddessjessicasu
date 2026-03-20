@@ -13,7 +13,7 @@ CMD ["sh", "-c", "npx prisma migrate dev --skip-generate && npx tsx watch src/in
 FROM base AS build
 COPY . .
 RUN npx prisma generate
-ENV NODE_OPTIONS="--max-old-space-size=512"
+ENV NODE_OPTIONS="--max-old-space-size=384"
 RUN npx tsc
 
 FROM node:22-alpine AS production
