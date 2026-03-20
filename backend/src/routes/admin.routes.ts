@@ -103,7 +103,7 @@ adminRoutes.post('/media', asyncHandler(async (req, res) => {
   }
 
   // Preview image asset IDs (images are uploaded via /admin/media/assets/:assetId/upload)
-  const previewImageAssets = media.assets.map((a) => ({
+  const previewImageAssets = mediaWithAssets.assets.map((a: { id: string; sortOrder: number }) => ({
     assetId: a.id,
     sortOrder: a.sortOrder,
   }));
