@@ -193,6 +193,11 @@ function ConfigTab() {
           <input type="number" step="0.001" value={cfg.rateUsdPerToken || ""} onChange={(e) => setCfg({ ...cfg, rateUsdPerToken: parseFloat(e.target.value) })} className="px-3 py-2 bg-black border border-white/10 rounded text-white w-48" />
         </div>
         <div>
+          <label className="text-white/50 text-sm block mb-1">Annual Body Count</label>
+          <input type="number" step="1" value={cfg.bodyCount ?? 0} onChange={(e) => setCfg({ ...cfg, bodyCount: parseInt(e.target.value) || 0 })} className="px-3 py-2 bg-black border border-white/10 rounded text-white w-48" />
+          <p className="text-white/25 text-xs mt-1">Displayed on the landing page hero section.</p>
+        </div>
+        <div>
           <label className="text-white/50 text-sm block mb-1">Bio Text</label>
           <textarea value={cfg.bioText || ""} onChange={(e) => setCfg({ ...cfg, bioText: e.target.value })} className="w-full px-3 py-2 bg-black border border-white/10 rounded text-white" rows={4} />
         </div>

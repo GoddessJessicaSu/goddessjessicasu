@@ -129,6 +129,8 @@ model SiteConfig {
 
   whitelistEnabled  Boolean  @default(false)
 
+  bodyCount         Int      @default(0)
+
   updatedAt         DateTime @updatedAt
 }
 

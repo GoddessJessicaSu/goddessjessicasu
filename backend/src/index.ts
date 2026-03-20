@@ -12,6 +12,7 @@ import { adminRoutes } from './routes/admin.routes';
 import { adminUploadRoutes } from './routes/admin-upload.routes';
 import { galleryRoutes } from './routes/gallery.routes';
 import { webhookRoutes } from './routes/webhook.routes';
+import { statsRoutes } from './routes/stats.routes';
 const app = express();
 
 // Trust the nginx reverse proxy so req.ip reflects the real client IP
@@ -37,6 +38,7 @@ app.use('/api/deposit', depositRoutes);
 app.use('/api/purchase', purchaseRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/gallery', galleryRoutes);
+app.use('/api/stats', statsRoutes);
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok' });

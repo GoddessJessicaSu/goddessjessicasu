@@ -475,23 +475,20 @@ adminRoutes.delete('/tiers/:id', asyncHandler(async (req, res) => {
 }));
 
 adminRoutes.put('/config', asyncHandler(async (req, res) => {
-  const { rateUsdPerToken, bioText, customVideoText, whitelistEnabled } = req.body;
+  const { rateUsdPerToken, bioText, customVideoText, whitelistEnabled, bodyCount } = req.body;
+
+  const data = {
+    ...(rateUsdPerToken !== undefined && { rateUsdPerToken }),
+    ...(bioText !== undefined && { bioText }),
+    ...(customVideoText !== undefined && { customVideoText }),
+    ...(whitelistEnabled !== undefined && { whitelistEnabled }),
+    ...(bodyCount !== undefined && { bodyCount: Math.max(0, Math.floor(bodyCount)) }),
+  };
 
   const siteConfig = await prisma.siteConfig.upsert({
     where: { id: 1 },
-    create: {
-      id: 1,
-      ...(rateUsdPerToken !== undefined && { rateUsdPerToken }),
-      ...(bioText !== undefined && { bioText }),
-      ...(customVideoText !== undefined && { customVideoText }),
-      ...(whitelistEnabled !== undefined && { whitelistEnabled }),
-    },
-    update: {
-      ...(rateUsdPerToken !== undefined && { rateUsdPerToken }),
-      ...(bioText !== undefined && { bioText }),
-      ...(customVideoText !== undefined && { customVideoText }),
-      ...(whitelistEnabled !== undefined && { whitelistEnabled }),
-    },
+    create: { id: 1, ...data },
+    update: data,
   });
 
   res.json({ config: siteConfig });

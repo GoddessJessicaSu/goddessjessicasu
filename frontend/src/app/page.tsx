@@ -3,9 +3,24 @@
 import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { brand } from "@/lib/brand";
+import api from "@/lib/api";
 
 export default function Landing() {
+  const [bodyCount, setBodyCount] = useState<number | null>(null);
+  const [year, setYear] = useState<number>(new Date().getFullYear());
+
+  useEffect(() => {
+    api
+      .get("/stats")
+      .then((res) => {
+        setBodyCount(res.data.bodyCount);
+        setYear(res.data.year);
+      })
+      .catch(() => {});
+  }, []);
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -79,29 +94,58 @@ export default function Landing() {
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.6 }}
             >
-              <span>Exclusive Content, Unlocked by <span className="font-mono-tech text-primary/70">Crypto</span></span>
+              <span>
+                Exclusive Content, Unlocked by{" "}
+                <span className="font-mono-tech text-primary/70">Crypto</span>
+              </span>
               <span className="dot-live" />
             </motion.p>
 
-            <motion.div
-              className="flex flex-col sm:flex-row gap-5"
-              initial={{ y: 30, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.8 }}
-            >
-              <Link
-                href="/gallery"
-                className="btn-gold px-12 py-4 text-[11px] text-center"
+            <div className="w-fit">
+              <motion.div
+                className="flex flex-col sm:flex-row gap-5"
+                initial={{ y: 30, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.8 }}
               >
-                Claim Access
-              </Link>
-              <Link
-                href="/dashboard"
-                className="btn-ghost-gold px-12 py-4 text-[11px] text-center"
-              >
-                My Dashboard
-              </Link>
-            </motion.div>
+                <Link
+                  href="/gallery"
+                  className="btn-gold px-12 py-4 text-[11px] text-center"
+                >
+                  Claim Access
+                </Link>
+                <Link
+                  href="/dashboard"
+                  className="btn-ghost-gold px-12 py-4 text-[11px] text-center"
+                >
+                  My Dashboard
+                </Link>
+              </motion.div>
+
+              {/* Body Count */}
+              {bodyCount !== null && (
+                <motion.div
+                  className="mt-16"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 1.0, duration: 0.8 }}
+                >
+                  <div className="w-full h-px bg-primary/20 mb-8" />
+                  <p className="font-sans font-light text-foreground/40 text-[9px] tracking-[0.5em] uppercase mb-6">
+                    The {year} Crush Season
+                  </p>
+                  <div className="flex items-center justify-between">
+                    <p className="font-heading text-primary/70 text-xs sm:text-sm tracking-[0.2em] uppercase">
+                      Annual Body Count to Date
+                    </p>
+                    <span className="text-[#990000] font-heading text-4xl sm:text-5xl md:text-6xl leading-none drop-shadow-[0_0_20px_rgba(153,0,0,0.45)]">
+                      {bodyCount}
+                    </span>
+                  </div>
+                  <div className="w-full h-px bg-primary/20 mt-8" />
+                </motion.div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -120,15 +164,31 @@ export default function Landing() {
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
         >
-          <p className="font-sans font-light text-primary/40 text-[10px] tracking-[0.5em] uppercase mb-4">The Ritual</p>
-          <h2 className="font-heading text-3xl md:text-4xl text-gold-shimmer font-normal tracking-[0.1em]">How It Works</h2>
+          <p className="font-sans font-light text-primary/40 text-[10px] tracking-[0.5em] uppercase mb-4">
+            The Ritual
+          </p>
+          <h2 className="font-heading text-3xl md:text-4xl text-gold-shimmer font-normal tracking-[0.1em]">
+            How It Works
+          </h2>
         </motion.div>
 
         <div className="grid md:grid-cols-3 gap-12">
           {[
-            { step: "I", title: "Enter", desc: "Provide your email to receive a magic link. No passwords. No friction." },
-            { step: "II", title: "Acquire", desc: `Pay with any cryptocurrency. Receive ${brand.tokenName} tokens to your vault instantly.` },
-            { step: "III", title: "Unlock", desc: `Spend ${brand.tokenName} tokens to access exclusive, premium content.` },
+            {
+              step: "I",
+              title: "Enter",
+              desc: "Provide your email to receive a magic link. No passwords. No friction.",
+            },
+            {
+              step: "II",
+              title: "Acquire",
+              desc: `Pay with any cryptocurrency. Receive ${brand.tokenName} tokens to your vault instantly.`,
+            },
+            {
+              step: "III",
+              title: "Unlock",
+              desc: `Spend ${brand.tokenName} tokens to access exclusive, premium content.`,
+            },
           ].map((item, i) => (
             <motion.div
               key={item.step}
@@ -142,8 +202,12 @@ export default function Landing() {
                 {item.step}
               </div>
               <div className="w-8 h-px bg-primary/20 mx-auto mb-6" />
-              <h3 className="font-heading text-lg text-primary/80 tracking-[0.2em] uppercase mb-3 font-normal">{item.title}</h3>
-              <p className="text-foreground/35 text-sm leading-relaxed font-light">{item.desc}</p>
+              <h3 className="font-heading text-lg text-primary/80 tracking-[0.2em] uppercase mb-3 font-normal">
+                {item.title}
+              </h3>
+              <p className="text-foreground/35 text-sm leading-relaxed font-light">
+                {item.desc}
+              </p>
             </motion.div>
           ))}
         </div>
@@ -159,11 +223,19 @@ export default function Landing() {
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
         >
-          <p className="font-sans font-light text-primary/40 text-[10px] tracking-[0.5em] uppercase mb-4">By Request Only</p>
-          <h2 className="font-heading text-3xl md:text-4xl text-gold-shimmer mb-6 font-normal tracking-[0.1em]">Custom Videos</h2>
+          <p className="font-sans font-light text-primary/40 text-[10px] tracking-[0.5em] uppercase mb-4">
+            By Request Only
+          </p>
+          <h2 className="font-heading text-3xl md:text-4xl text-gold-shimmer mb-6 font-normal tracking-[0.1em]">
+            Custom Videos
+          </h2>
           <p className="text-foreground/35 max-w-lg mx-auto mb-10 leading-relaxed font-light">
-            Desire something crafted exclusively for you? Commission a custom piece.
-            Pricing in <span className="font-mono-tech text-primary/60">{brand.tokenName}</span> tokens.
+            Desire something crafted exclusively for you? Commission a custom
+            piece. Pricing in{" "}
+            <span className="font-mono-tech text-primary/60">
+              {brand.tokenName}
+            </span>{" "}
+            tokens.
           </p>
           <Link
             href="/custom-videos"
