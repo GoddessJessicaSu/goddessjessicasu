@@ -50,7 +50,7 @@ depositRoutes.post('/initiate', authMiddleware, asyncHandler(async (req: AuthReq
     },
   });
 
-  const callbackUrl = config.nowpayments.callbackUrl || `${req.protocol}://${req.get('host')}/api/webhooks/nowpayments`;
+  const callbackUrl = config.nowpayments.callbackUrl || `${config.frontendUrl.replace(/\/$/, '')}/api/webhooks/nowpayments`;
 
   const invoice = await createPayment({
     priceAmount: tier.priceUsd,
