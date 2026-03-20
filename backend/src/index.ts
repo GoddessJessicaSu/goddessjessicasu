@@ -14,6 +14,10 @@ import { galleryRoutes } from './routes/gallery.routes';
 import { webhookRoutes } from './routes/webhook.routes';
 const app = express();
 
+// Trust the nginx reverse proxy so req.ip reflects the real client IP
+// (needed for per-user rate limiting via X-Forwarded-For)
+app.set('trust proxy', 1);
+
 app.use(helmet());
 app.use(cors({
   origin: config.frontendUrl,
