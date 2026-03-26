@@ -31,6 +31,8 @@ interface EditState {
   title: string;
   description: string;
   priceTokens: string;
+  files: Array<{ id: string; objectKey: string; originalFilename: string | null; sortOrder: number }>;
+  newStorjKey: string;
 }
 
 interface AssetData {
@@ -104,6 +106,11 @@ function SortableMediaRow({
           <span className="text-xs px-2 py-0.5 rounded bg-white/10 text-white/30 inline-block w-24 text-center">
             {m._count?.assets ?? m.assets?.length ?? 0} images
           </span>
+          {(m.files?.length ?? 0) > 0 && (
+            <span className="text-xs px-2 py-0.5 rounded bg-white/10 text-white/30 inline-block w-20 text-center">
+              {m.files.length} files
+            </span>
+          )}
           <span
             className={`text-xs px-2 py-0.5 rounded ${
               m.isPublished
@@ -153,6 +160,8 @@ export default function MediaTab() {
     title: "",
     description: "",
     priceTokens: "",
+    files: [],
+    newStorjKey: "",
   });
   const [saving, setSaving] = useState(false);
   const [reordering, setReordering] = useState(false);
@@ -238,6 +247,8 @@ export default function MediaTab() {
       title: m.title,
       description: m.description || "",
       priceTokens: String(m.priceTokens),
+      files: m.files || [],
+      newStorjKey: "",
     });
     setDeletedAssetIds(new Set());
     setDeletingAssetIds(new Set());
@@ -254,6 +265,7 @@ export default function MediaTab() {
           url: a.url,
         }))
       );
+      setEdit((prev) => ({ ...prev, files: res.data.media.files || [] }));
     } catch (err: any) {
       alert(err.response?.data?.error || "Failed to load preview images");
     } finally {
@@ -263,7 +275,7 @@ export default function MediaTab() {
 
   const cancelEdit = () => {
     setEditingId(null);
-    setEdit({ title: "", description: "", priceTokens: "" });
+    setEdit({ title: "", description: "", priceTokens: "", files: [], newStorjKey: "" });
     setEditImages([]);
     setDeletedAssetIds(new Set());
     setDeletingAssetIds(new Set());
@@ -528,6 +540,85 @@ export default function MediaTab() {
                         deleting={deletingAssetIds}
                       />
                     )}
+                  </div>
+
+                  {/* Product Files */}
+                  <div>
+                    <label className="text-white/40 text-xs block mb-1">
+                      Product Files (Storj keys)
+                    </label>
+                    {edit.files.length > 0 ? (
+                      <div className="space-y-1.5 mb-2">
+                        {edit.files.map((f) => (
+                          <div
+                            key={f.id}
+                            className="flex items-center gap-2 bg-white/5 rounded px-3 py-2 border border-white/10"
+                          >
+                            <span className="text-white/60 text-sm font-mono truncate flex-1">
+                              {f.originalFilename || f.objectKey}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                if (!confirm(`Remove "${f.originalFilename || f.objectKey}"?`)) return;
+                                try {
+                                  await api.delete(`/admin/media/${m.id}/files/${f.id}`);
+                                  setEdit((prev) => ({
+                                    ...prev,
+                                    files: prev.files.filter((x) => x.id !== f.id),
+                                  }));
+                                } catch (err: any) {
+                                  alert(err.response?.data?.error || "Failed to delete file");
+                                }
+                              }}
+                              className="text-white/30 hover:text-red-400 text-xs transition shrink-0"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-white/20 text-xs mb-2">
+                        No extra product files. Downloads use the legacy product key.
+                      </p>
+                    )}
+                    <div className="flex gap-2">
+                      <input
+                        value={edit.newStorjKey}
+                        onChange={(e) => setEdit({ ...edit, newStorjKey: e.target.value })}
+                        placeholder="storj_key (without products/ prefix)"
+                        className="flex-1 px-3 py-1.5 bg-black border border-white/10 rounded text-white text-sm font-mono"
+                      />
+                      <button
+                        type="button"
+                        disabled={!edit.newStorjKey.trim()}
+                        onClick={async () => {
+                          const key = edit.newStorjKey.trim();
+                          if (!key) return;
+                          try {
+                            const fname = key.split("/").pop() || key;
+                            const res = await api.post(`/admin/media/${m.id}/files`, {
+                              productFile: {
+                                name: fname,
+                                mimeType: key.endsWith(".mov") ? "video/quicktime" : "video/mp4",
+                              },
+                              storjKey: key,
+                            });
+                            setEdit((prev) => ({
+                              ...prev,
+                              files: [...prev.files, res.data.file],
+                              newStorjKey: "",
+                            }));
+                          } catch (err: any) {
+                            alert(err.response?.data?.error || "Failed to add file");
+                          }
+                        }}
+                        className="px-3 py-1.5 bg-primary/80 text-black text-sm rounded font-medium hover:bg-primary transition disabled:opacity-30"
+                      >
+                        Add
+                      </button>
+                    </div>
                   </div>
 
                   {/* Actions */}

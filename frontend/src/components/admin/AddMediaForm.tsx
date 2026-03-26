@@ -20,7 +20,7 @@ export default function AddMediaForm({ onCreated }: AddMediaFormProps) {
   const [previewImages, setPreviewImages] = useState<File[]>([]);
   const [previewClipFile, setPreviewClipFile] = useState<File | null>(null);
   const [productFile, setProductFile] = useState<File | null>(null);
-  const [storjKey, setStorjKey] = useState("");
+  const [storjKeys, setStorjKeys] = useState<string[]>([""]);
   const [useStorjKey, setUseStorjKey] = useState(false);
 
   const [submitting, setSubmitting] = useState(false);
@@ -37,7 +37,8 @@ export default function AddMediaForm({ onCreated }: AddMediaFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const needsProductFile = useStorjKey ? !storjKey.trim() : !productFile;
+    const validStorjKeys = storjKeys.filter((k) => k.trim());
+    const needsProductFile = useStorjKey ? validStorjKeys.length === 0 : !productFile;
     if (!title.trim() || !priceTokens || previewImages.length === 0 || needsProductFile) {
       alert("Title, price, at least 1 preview image, and product file (or Storj key) are required.");
       return;
@@ -47,11 +48,12 @@ export default function AddMediaForm({ onCreated }: AddMediaFormProps) {
 
     try {
       // 1. Create media record and get presigned URLs
-      const productFileName = useStorjKey
-        ? storjKey.trim().split("/").pop() || storjKey.trim()
+      const firstKey = useStorjKey ? validStorjKeys[0] : null;
+      const productFileName = firstKey
+        ? firstKey.split("/").pop() || firstKey
         : productFile!.name;
-      const productMime = useStorjKey
-        ? (storjKey.trim().endsWith(".mov") ? "video/quicktime" : "video/mp4")
+      const productMime = firstKey
+        ? (firstKey.endsWith(".mov") ? "video/quicktime" : "video/mp4")
         : (productFile!.type || "application/octet-stream");
 
       const res = await api.post("/admin/media", {
@@ -71,7 +73,7 @@ export default function AddMediaForm({ onCreated }: AddMediaFormProps) {
             }
           : undefined,
         previewImageCount: previewImages.length,
-        ...(useStorjKey && { storjKey: storjKey.trim() }),
+        ...(firstKey && { storjKey: firstKey }),
       });
 
       const { media, productUpload, previewClipUpload, previewImageAssets } =
@@ -85,7 +87,21 @@ export default function AddMediaForm({ onCreated }: AddMediaFormProps) {
         });
       }
 
-      // 2. Build upload tasks (images paired by sortOrder)
+      // 2. Create MediaFile records for all Storj keys
+      if (useStorjKey) {
+        for (const key of validStorjKeys) {
+          const fname = key.split("/").pop() || key;
+          await api.post(`/admin/media/${media.id}/files`, {
+            productFile: {
+              name: fname,
+              mimeType: key.endsWith(".mov") ? "video/quicktime" : "video/mp4",
+            },
+            storjKey: key,
+          });
+        }
+      }
+
+      // 3. Build upload tasks (images paired by sortOrder)
       const imageUploads = previewImageAssets
         .sort((a: any, b: any) => a.sortOrder - b.sortOrder)
         .map((u: any, i: number) => ({
@@ -110,7 +126,7 @@ export default function AddMediaForm({ onCreated }: AddMediaFormProps) {
               };
       }
 
-      // 3. Upload all files
+      // 4. Upload all files
       const success = await uploadFiles({
         previewImages: imageUploads,
         previewClip: previewClipUpload && previewClipFile
@@ -127,7 +143,7 @@ export default function AddMediaForm({ onCreated }: AddMediaFormProps) {
         setPreviewImages([]);
         setPreviewClipFile(null);
         setProductFile(null);
-        setStorjKey("");
+        setStorjKeys([""]);
         setUseStorjKey(false);
         setMultipartState(null);
         onCreated();
@@ -222,19 +238,46 @@ export default function AddMediaForm({ onCreated }: AddMediaFormProps) {
             <label className="text-white/50 text-sm">Product File</label>
             <button
               type="button"
-              onClick={() => { setUseStorjKey(!useStorjKey); setProductFile(null); setStorjKey(""); }}
+              onClick={() => { setUseStorjKey(!useStorjKey); setProductFile(null); setStorjKeys([""]); }}
               className="text-xs text-primary/70 hover:text-primary underline"
             >
               {useStorjKey ? "Upload file instead" : "Use Storj key instead"}
             </button>
           </div>
           {useStorjKey ? (
-            <input
-              value={storjKey}
-              onChange={(e) => setStorjKey(e.target.value)}
-              placeholder="a3f9bc12_video.mp4 (key without products/ prefix)"
-              className="w-full px-3 py-2 bg-black border border-white/10 rounded text-white text-sm font-mono"
-            />
+            <div className="space-y-2">
+              {storjKeys.map((key, i) => (
+                <div key={i} className="flex gap-2">
+                  <input
+                    value={key}
+                    onChange={(e) => {
+                      const next = [...storjKeys];
+                      next[i] = e.target.value;
+                      setStorjKeys(next);
+                    }}
+                    placeholder="a3f9bc12_video.mp4 (key without products/ prefix)"
+                    className="flex-1 px-3 py-2 bg-black border border-white/10 rounded text-white text-sm font-mono"
+                  />
+                  {storjKeys.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => setStorjKeys(storjKeys.filter((_, j) => j !== i))}
+                      className="px-2 text-white/30 hover:text-red-400 text-sm transition"
+                      title="Remove"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() => setStorjKeys([...storjKeys, ""])}
+                className="text-xs text-primary/60 hover:text-primary transition"
+              >
+                + Add another file
+              </button>
+            </div>
           ) : productFile ? (
             <div className="flex items-center gap-3 bg-white/5 rounded p-3 border border-white/10">
               <span className="text-white/70 text-sm truncate">
