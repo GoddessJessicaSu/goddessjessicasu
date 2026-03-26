@@ -130,11 +130,38 @@ export async function sendMagicLinkEmail(email: string, token: string) {
 export async function sendPurchaseDownloadEmail(
   email: string,
   mediaTitle: string,
-  downloadUrl: string,
+  downloads: Array<{ url: string; label: string }>,
 ) {
   const bodyStyle =
     "font-family: 'Georgia', 'Times New Roman', serif; font-size: 14px; color: rgba(245,240,232,0.55); line-height: 1.9;";
   const accentStyle = "color: rgba(245,240,232,0.8);";
+
+  const isSingle = downloads.length === 1;
+
+  const downloadButtonsHtml = isSingle
+    ? `<!-- Single download button -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+      <tr><td style="padding-bottom: 8px;">
+        <span style="font-family: 'Georgia', 'Times New Roman', serif; font-size: 12px; color: rgba(245,240,232,0.35);">&#127909; Download here (valid for 24 hours):</span>
+      </td></tr>
+      <tr><td align="center" style="padding-bottom: 32px;">
+        <a href="${downloads[0].url}" style="display: inline-block; padding: 14px 48px; background-color: ${accentColor}; color: rgba(245,240,232,0.9); text-decoration: none; font-family: 'Georgia', 'Times New Roman', serif; font-size: 12px; letter-spacing: 3px; text-transform: uppercase; border-radius: 2px;">
+          &#128279; Download Now
+        </a>
+      </td></tr>
+    </table>`
+    : `<!-- Multiple download buttons -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+      <tr><td style="padding-bottom: 12px;">
+        <span style="font-family: 'Georgia', 'Times New Roman', serif; font-size: 12px; color: rgba(245,240,232,0.35);">&#127909; Your files (valid for 24 hours):</span>
+      </td></tr>
+      ${downloads.map((d, i) => `
+      <tr><td align="center" style="padding-bottom: ${i < downloads.length - 1 ? '12' : '32'}px;">
+        <a href="${d.url}" style="display: inline-block; width: 80%; max-width: 360px; padding: 12px 24px; background-color: ${accentColor}; color: rgba(245,240,232,0.9); text-decoration: none; font-family: 'Georgia', 'Times New Roman', serif; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; border-radius: 2px; text-align: center;">
+          &#128279; File ${i + 1} &mdash; ${escapeHtml(d.label)}
+        </a>
+      </td></tr>`).join('')}
+    </table>`;
 
   const html = emailWrapper(`
     <!-- Heading -->
@@ -153,22 +180,12 @@ export async function sendPurchaseDownloadEmail(
     <!-- Body -->
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
       <tr><td style="${bodyStyle} padding-bottom: 6px;">Hey little one,</td></tr>
-      <tr><td style="${bodyStyle} padding-bottom: 20px;">Your videos are ready for you.</td></tr>
+      <tr><td style="${bodyStyle} padding-bottom: 20px;">Your ${isSingle ? 'video is' : 'videos are'} ready for you.</td></tr>
       <tr><td style="${bodyStyle} padding-bottom: 6px;">I know you are begging to see what I've prepared for you.</td></tr>
       <tr><td style="${bodyStyle} ${accentStyle} padding-bottom: 28px;">Good boy.</td></tr>
     </table>
 
-    <!-- Download button -->
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-      <tr><td style="padding-bottom: 8px;">
-        <span style="font-family: 'Georgia', 'Times New Roman', serif; font-size: 12px; color: rgba(245,240,232,0.35);">&#127909; Download here (valid for 24 hours):</span>
-      </td></tr>
-      <tr><td align="center" style="padding-bottom: 32px;">
-        <a href="${downloadUrl}" style="display: inline-block; padding: 14px 48px; background-color: ${accentColor}; color: rgba(245,240,232,0.9); text-decoration: none; font-family: 'Georgia', 'Times New Roman', serif; font-size: 12px; letter-spacing: 3px; text-transform: uppercase; border-radius: 2px;">
-          &#128279; Download Now
-        </a>
-      </td></tr>
-    </table>
+    ${downloadButtonsHtml}
 
     <!-- Divider -->
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0">

@@ -93,6 +93,17 @@ model Media {
 
   purchases     Purchase[]
   assets        MediaAsset[]
+  files         MediaFile[]
+}
+
+model MediaFile {
+  id               String   @id @default(cuid())
+  mediaId          String
+  media            Media    @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+  objectKey        String
+  originalFilename String?
+  sortOrder        Int      @default(0)
+  createdAt        DateTime @default(now())
 }
 
 model MediaAsset {

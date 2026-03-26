@@ -169,6 +169,7 @@ adminRoutes.get('/media', asyncHandler(async (_req, res) => {
     include: {
       _count: { select: { assets: true } },
       assets: { orderBy: { sortOrder: 'asc' } },
+      files: { orderBy: { sortOrder: 'asc' } },
     },
   });
   res.json({ media });
@@ -201,7 +202,7 @@ adminRoutes.put('/media/:id', asyncHandler(async (req, res) => {
 adminRoutes.delete('/media/:id', asyncHandler(async (req, res) => {
   const media = await prisma.media.findUnique({
     where: { id: req.params.id as string },
-    include: { assets: true },
+    include: { assets: true, files: true },
   });
   if (!media) {
     res.status(404).json({ error: 'Media not found' });
@@ -216,6 +217,9 @@ adminRoutes.delete('/media/:id', asyncHandler(async (req, res) => {
   }
   for (const asset of media.assets) {
     deletions.push(deleteObject('previewImages', asset.objectKey).catch(() => {}));
+  }
+  for (const file of media.files) {
+    deletions.push(deleteObject('products', file.objectKey).catch(() => {}));
   }
   await Promise.all(deletions);
 
@@ -248,7 +252,10 @@ adminRoutes.put('/media-order', asyncHandler(async (req, res) => {
 adminRoutes.get('/media/:id', asyncHandler(async (req, res) => {
   const media = await prisma.media.findUnique({
     where: { id: req.params.id as string },
-    include: { assets: { orderBy: { sortOrder: 'asc' } } },
+    include: {
+      assets: { orderBy: { sortOrder: 'asc' } },
+      files: { orderBy: { sortOrder: 'asc' } },
+    },
   });
   if (!media) {
     res.status(404).json({ error: 'Media not found' });
@@ -357,6 +364,137 @@ adminRoutes.put('/media/:id/assets/reorder', asyncHandler(async (req, res) => {
     order.map((assetId: string, i: number) =>
       prisma.mediaAsset.update({
         where: { id: assetId },
+        data: { sortOrder: i },
+      })
+    )
+  );
+
+  res.json({ message: 'Reordered' });
+}));
+
+// --- Media Files (product files per masterpiece) ---
+
+// Add a product file to media (returns upload URL)
+adminRoutes.post('/media/:id/files', asyncHandler(async (req, res) => {
+  const { productFile, storjKey } = req.body;
+  if (!productFile?.name || !productFile?.mimeType || (!storjKey && !productFile?.size)) {
+    res.status(400).json({ error: 'productFile (name, size, mimeType) required' });
+    return;
+  }
+
+  const media = await prisma.media.findUnique({
+    where: { id: req.params.id as string },
+    include: { files: true },
+  });
+  if (!media) {
+    res.status(404).json({ error: 'Media not found' });
+    return;
+  }
+
+  const maxSort = media.files.reduce((max, f) => Math.max(max, f.sortOrder), -1);
+  const objectKey = storjKey || shortKey(productFile.name);
+
+  const file = await prisma.mediaFile.create({
+    data: {
+      mediaId: media.id,
+      objectKey,
+      originalFilename: productFile.name,
+      sortOrder: maxSort + 1,
+    },
+  });
+
+  let upload: any = null;
+  if (!storjKey) {
+    if (productFile.size > MULTIPART_THRESHOLD) {
+      const uploadId = await initiateMultipartUpload('products', objectKey);
+      const totalParts = Math.ceil(productFile.size / CHUNK_SIZE);
+      const partUrls = await Promise.all(
+        Array.from({ length: totalParts }, (_, i) =>
+          getMultipartPartUrl('products', objectKey, uploadId, i + 1).then(url => ({
+            partNumber: i + 1,
+            url,
+          }))
+        )
+      );
+      upload = { mode: 'multipart', uploadId, partUrls, chunkSize: CHUNK_SIZE };
+    } else {
+      const url = await getUploadUrl('products', objectKey);
+      upload = { mode: 'single', url };
+    }
+  }
+
+  res.json({ file, upload });
+}));
+
+// Complete multipart upload for a media file
+adminRoutes.post('/media/:id/files/:fileId/complete-multipart', asyncHandler(async (req, res) => {
+  const { uploadId, parts } = req.body;
+  if (!uploadId || !Array.isArray(parts)) {
+    res.status(400).json({ error: 'uploadId and parts[] required' });
+    return;
+  }
+
+  const file = await prisma.mediaFile.findFirst({
+    where: { id: req.params.fileId as string, mediaId: req.params.id as string },
+  });
+  if (!file) {
+    res.status(404).json({ error: 'File not found' });
+    return;
+  }
+
+  const formattedParts = parts.map((p: { partNumber: number; etag: string }) => ({
+    part: p.partNumber,
+    etag: p.etag,
+  }));
+
+  await completeMultipartUpload('products', file.objectKey, uploadId, formattedParts);
+  res.json({ message: 'Multipart upload completed' });
+}));
+
+// Delete a product file from media
+adminRoutes.delete('/media/:id/files/:fileId', asyncHandler(async (req, res) => {
+  const file = await prisma.mediaFile.findFirst({
+    where: { id: req.params.fileId as string, mediaId: req.params.id as string },
+  });
+  if (!file) {
+    res.status(404).json({ error: 'File not found' });
+    return;
+  }
+
+  await deleteObject('products', file.objectKey).catch(() => {});
+  await prisma.mediaFile.delete({ where: { id: file.id } });
+  res.json({ message: 'File deleted' });
+}));
+
+// Reorder product files
+adminRoutes.put('/media/:id/files/reorder', asyncHandler(async (req, res) => {
+  const { order } = req.body;
+  if (!Array.isArray(order)) {
+    res.status(400).json({ error: 'order[] (array of file IDs) required' });
+    return;
+  }
+
+  const media = await prisma.media.findUnique({
+    where: { id: req.params.id as string },
+    include: { files: true },
+  });
+  if (!media) {
+    res.status(404).json({ error: 'Media not found' });
+    return;
+  }
+
+  const fileIds = new Set(media.files.map((f) => f.id));
+  for (const id of order) {
+    if (!fileIds.has(id)) {
+      res.status(400).json({ error: `File ${id} does not belong to this media` });
+      return;
+    }
+  }
+
+  await prisma.$transaction(
+    order.map((fileId: string, i: number) =>
+      prisma.mediaFile.update({
+        where: { id: fileId },
         data: { sortOrder: i },
       })
     )

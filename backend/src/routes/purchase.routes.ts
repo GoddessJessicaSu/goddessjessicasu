@@ -41,7 +41,10 @@ purchaseRoutes.get('/vault', authMiddleware, asyncHandler(async (req: AuthReques
 purchaseRoutes.post('/:mediaId', purchaseLimiter, authMiddleware, asyncHandler(async (req: AuthRequest, res) => {
   const mediaId = req.params.mediaId as string;
 
-  const media = await prisma.media.findUnique({ where: { id: mediaId } });
+  const media = await prisma.media.findUnique({
+    where: { id: mediaId },
+    include: { files: { orderBy: { sortOrder: 'asc' } } },
+  });
   if (!media || !media.isPublished) {
     res.status(404).json({ error: 'Media not found' });
     return;
@@ -80,10 +83,22 @@ purchaseRoutes.post('/:mediaId', purchaseLimiter, authMiddleware, asyncHandler(a
     },
   });
 
-  const downloadUrl = await getPresignedUrl('products', media.minioKey, media.originalFilename ?? undefined);
+  // Build download list from MediaFile records, falling back to legacy minioKey
+  let downloads: Array<{ url: string; label: string }>;
+  if (media.files.length > 0) {
+    downloads = await Promise.all(
+      media.files.map(async (f) => ({
+        url: await getPresignedUrl('products', f.objectKey, f.originalFilename ?? undefined),
+        label: f.originalFilename ?? `File ${f.sortOrder + 1}`,
+      }))
+    );
+  } else {
+    const url = await getPresignedUrl('products', media.minioKey, media.originalFilename ?? undefined);
+    downloads = [{ url, label: media.originalFilename ?? 'Download' }];
+  }
 
   // Send download email (non-blocking)
-  sendPurchaseDownloadEmail(user.email, media.title, downloadUrl).catch((err) =>
+  sendPurchaseDownloadEmail(user.email, media.title, downloads).catch((err) =>
     log.error({ err, userId: user.id, mediaId }, 'Failed to send download email')
   );
 
