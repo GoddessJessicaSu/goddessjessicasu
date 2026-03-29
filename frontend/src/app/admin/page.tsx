@@ -5,8 +5,9 @@ import { useEffect, useState } from "react";
 import api from "@/lib/api";
 import { brand } from "@/lib/brand";
 import MediaTab from "@/components/admin/MediaTab";
+import AttributesTab from "@/components/admin/AttributesTab";
 
-type Tab = "media" | "users" | "transactions" | "config";
+type Tab = "media" | "attributes" | "users" | "sales" | "transactions" | "config";
 
 export default function Admin() {
   const [tab, setTab] = useState<Tab>("media");
@@ -35,7 +36,9 @@ export default function Admin() {
 
   const tabs: { key: Tab; label: string }[] = [
     { key: "media", label: "Media" },
+    { key: "attributes", label: "Attributes" },
     { key: "users", label: "Users" },
+    { key: "sales", label: "Sales" },
     { key: "transactions", label: "Transactions" },
     { key: "config", label: "Config" },
   ];
@@ -64,7 +67,9 @@ export default function Admin() {
       </div>
 
       {tab === "media" && <MediaTab />}
+      {tab === "attributes" && <AttributesTab />}
       {tab === "users" && <UsersTab />}
+      {tab === "sales" && <SalesTab />}
       {tab === "transactions" && <TransactionsTab />}
       {tab === "config" && <ConfigTab />}
     </motion.div>
@@ -137,6 +142,81 @@ function UsersTab() {
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+function SalesTab() {
+  const [sales, setSales] = useState<any[]>([]);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    api.get("/admin/sales").then((res) => setSales(res.data.sales)).catch((err) => alert(err.response?.data?.error || "Failed to load sales"));
+  }, []);
+
+  const totalSales = sales.reduce((sum, m) => sum + m.totalSales, 0);
+  const totalTokens = sales.reduce((sum, m) => sum + m.totalTokensEarned, 0);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex gap-4 mb-2">
+        <div className="bg-white/5 rounded-lg px-4 py-3 border border-white/10">
+          <div className="text-white/40 text-xs uppercase tracking-wider">Total Sales</div>
+          <div className="text-2xl font-bold text-primary">{totalSales}</div>
+        </div>
+        <div className="bg-white/5 rounded-lg px-4 py-3 border border-white/10">
+          <div className="text-white/40 text-xs uppercase tracking-wider">Total {brand.tokenName} Earned</div>
+          <div className="text-2xl font-bold text-primary">{totalTokens.toLocaleString()}</div>
+        </div>
+      </div>
+
+      {sales.map((m: any) => (
+        <div key={m.id} className="bg-white/5 rounded-lg border border-white/10 overflow-hidden">
+          <div
+            className="flex items-center justify-between p-4 cursor-pointer hover:bg-white/[0.02] transition"
+            onClick={() => setExpandedId(expandedId === m.id ? null : m.id)}
+          >
+            <div>
+              <span className="font-medium">{m.title}</span>
+              <span className="ml-3 text-white/30 text-sm">{m.priceTokens} {brand.tokenName}</span>
+            </div>
+            <div className="flex items-center gap-4">
+              <span className="text-sm">
+                <span className="text-primary font-semibold">{m.totalSales}</span>
+                <span className="text-white/40 ml-1">{m.totalSales === 1 ? "sale" : "sales"}</span>
+              </span>
+              <span className="text-sm">
+                <span className="text-primary font-semibold">{m.totalTokensEarned.toLocaleString()}</span>
+                <span className="text-white/40 ml-1">{brand.tokenName}</span>
+              </span>
+              <span className="text-white/30 text-sm">{expandedId === m.id ? "\u25B2" : "\u25BC"}</span>
+            </div>
+          </div>
+
+          {expandedId === m.id && (
+            <div className="border-t border-white/10">
+              {m.buyers.length === 0 ? (
+                <div className="p-4 text-white/30 text-sm">No purchases yet.</div>
+              ) : (
+                m.buyers.map((b: any) => (
+                  <div key={b.id} className="flex items-center justify-between px-4 py-2.5 border-b border-white/5 last:border-b-0">
+                    <span className="text-sm">
+                      <span className="font-medium">{b.user.username || b.user.email}</span>
+                      {b.user.username && <span className="ml-2 text-white/30 text-xs">{b.user.email}</span>}
+                    </span>
+                    <div className="flex items-center gap-4">
+                      <span className="text-primary text-sm font-medium">{b.tokensSpent} {brand.tokenName}</span>
+                      <span className="text-white/30 text-xs">{new Date(b.createdAt).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+      ))}
+
+      {sales.length === 0 && <p className="text-white/40 text-sm">No masterpieces yet.</p>}
     </div>
   );
 }

@@ -174,6 +174,7 @@ adminRoutes.get('/media', asyncHandler(async (_req, res) => {
       _count: { select: { assets: true } },
       assets: { orderBy: { sortOrder: 'asc' } },
       files: { orderBy: { sortOrder: 'asc' } },
+      tags: { include: { tag: { include: { category: true } } } },
     },
   });
   res.json({ media });
@@ -181,7 +182,7 @@ adminRoutes.get('/media', asyncHandler(async (_req, res) => {
 
 // Update media
 adminRoutes.put('/media/:id', asyncHandler(async (req, res) => {
-  const { title, description, priceTokens, isPublished, durationSecs } = req.body;
+  const { title, description, priceTokens, isPublished, durationSecs, lengthMinutes } = req.body;
 
   if (priceTokens !== undefined && !isValidPositiveNumber(priceTokens)) {
     res.status(400).json({ error: 'priceTokens must be a non-negative finite number' });
@@ -196,6 +197,7 @@ adminRoutes.put('/media/:id', asyncHandler(async (req, res) => {
       ...(priceTokens !== undefined && { priceTokens }),
       ...(isPublished !== undefined && { isPublished }),
       ...(durationSecs !== undefined && { durationSecs }),
+      ...(lengthMinutes !== undefined && { lengthMinutes: lengthMinutes === null ? null : parseFloat(lengthMinutes) }),
     },
   });
 
@@ -684,6 +686,149 @@ adminRoutes.put('/config', asyncHandler(async (req, res) => {
   });
 
   res.json({ config: siteConfig });
+}));
+
+// --- Sales ---
+
+adminRoutes.get('/sales', asyncHandler(async (_req, res) => {
+  const media = await prisma.media.findMany({
+    orderBy: { createdAt: 'desc' },
+    select: {
+      id: true,
+      title: true,
+      priceTokens: true,
+      createdAt: true,
+      purchases: {
+        select: {
+          id: true,
+          tokensSpent: true,
+          createdAt: true,
+          user: { select: { id: true, email: true, username: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+      },
+    },
+  });
+
+  const sales = media.map((m) => ({
+    id: m.id,
+    title: m.title,
+    priceTokens: m.priceTokens,
+    createdAt: m.createdAt,
+    totalSales: m.purchases.length,
+    totalTokensEarned: m.purchases.reduce((sum, p) => sum + p.tokensSpent, 0),
+    buyers: m.purchases,
+  }));
+
+  res.json({ sales });
+}));
+
+// --- Attribute Categories & Tags ---
+
+// List all categories with tags
+adminRoutes.get('/categories', asyncHandler(async (_req, res) => {
+  const categories = await prisma.attributeCategory.findMany({
+    orderBy: { sortOrder: 'asc' },
+    include: { tags: { orderBy: { sortOrder: 'asc' } } },
+  });
+  res.json({ categories });
+}));
+
+// Create category
+adminRoutes.post('/categories', asyncHandler(async (req, res) => {
+  const { name } = req.body;
+  if (!name || typeof name !== 'string' || !name.trim()) {
+    res.status(400).json({ error: 'Category name is required' });
+    return;
+  }
+  const maxSort = await prisma.attributeCategory.aggregate({ _max: { sortOrder: true } });
+  const category = await prisma.attributeCategory.create({
+    data: { name: name.trim(), sortOrder: (maxSort._max.sortOrder ?? -1) + 1 },
+    include: { tags: true },
+  });
+  res.json({ category });
+}));
+
+// Update category
+adminRoutes.put('/categories/:id', asyncHandler(async (req, res) => {
+  const { name } = req.body;
+  if (!name || typeof name !== 'string' || !name.trim()) {
+    res.status(400).json({ error: 'Category name is required' });
+    return;
+  }
+  const category = await prisma.attributeCategory.update({
+    where: { id: req.params.id as string },
+    data: { name: name.trim() },
+    include: { tags: true },
+  });
+  res.json({ category });
+}));
+
+// Delete category (cascades tags and media tags)
+adminRoutes.delete('/categories/:id', asyncHandler(async (req, res) => {
+  await prisma.attributeCategory.delete({ where: { id: req.params.id as string } });
+  res.json({ message: 'Deleted' });
+}));
+
+// Create tag in category
+adminRoutes.post('/categories/:id/tags', asyncHandler(async (req, res) => {
+  const { name } = req.body;
+  if (!name || typeof name !== 'string' || !name.trim()) {
+    res.status(400).json({ error: 'Tag name is required' });
+    return;
+  }
+  const categoryId = req.params.id as string;
+  const maxSort = await prisma.attributeTag.aggregate({
+    where: { categoryId },
+    _max: { sortOrder: true },
+  });
+  const tag = await prisma.attributeTag.create({
+    data: { name: name.trim(), categoryId, sortOrder: (maxSort._max.sortOrder ?? -1) + 1 },
+  });
+  res.json({ tag });
+}));
+
+// Update tag
+adminRoutes.put('/tags/:id', asyncHandler(async (req, res) => {
+  const { name } = req.body;
+  if (!name || typeof name !== 'string' || !name.trim()) {
+    res.status(400).json({ error: 'Tag name is required' });
+    return;
+  }
+  const tag = await prisma.attributeTag.update({
+    where: { id: req.params.id as string },
+    data: { name: name.trim() },
+  });
+  res.json({ tag });
+}));
+
+// Delete tag
+adminRoutes.delete('/tags/:id', asyncHandler(async (req, res) => {
+  await prisma.attributeTag.delete({ where: { id: req.params.id as string } });
+  res.json({ message: 'Deleted' });
+}));
+
+// Set tags for a media item (replace all)
+adminRoutes.put('/media/:id/tags', asyncHandler(async (req, res) => {
+  const { tagIds } = req.body;
+  if (!Array.isArray(tagIds)) {
+    res.status(400).json({ error: 'tagIds[] required' });
+    return;
+  }
+  const mediaId = req.params.id as string;
+
+  await prisma.$transaction([
+    prisma.mediaTag.deleteMany({ where: { mediaId } }),
+    ...tagIds.map((tagId: string) =>
+      prisma.mediaTag.create({ data: { mediaId, tagId } })
+    ),
+  ]);
+
+  const tags = await prisma.mediaTag.findMany({
+    where: { mediaId },
+    include: { tag: { include: { category: true } } },
+  });
+  res.json({ tags });
 }));
 
 // --- Email Whitelist ---

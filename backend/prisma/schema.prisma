@@ -87,6 +87,7 @@ model Media {
   previewKey        String?
   mimeType          String
   durationSecs  Int?
+  lengthMinutes Float?
   isPublished   Boolean      @default(false)
   sortOrder     Int          @default(0)
   createdAt     DateTime     @default(now())
@@ -94,6 +95,7 @@ model Media {
   purchases     Purchase[]
   assets        MediaAsset[]
   files         MediaFile[]
+  tags          MediaTag[]
 }
 
 model MediaFile {
@@ -149,4 +151,39 @@ model WhitelistedEmail {
   id        String   @id @default(cuid())
   email     String   @unique
   createdAt DateTime @default(now())
+}
+
+model AttributeCategory {
+  id        String           @id @default(cuid())
+  name      String           @unique
+  sortOrder Int              @default(0)
+  createdAt DateTime         @default(now())
+
+  tags      AttributeTag[]
+}
+
+model AttributeTag {
+  id         String            @id @default(cuid())
+  name       String
+  categoryId String
+  category   AttributeCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  sortOrder  Int               @default(0)
+  createdAt  DateTime          @default(now())
+
+  mediaTags  MediaTag[]
+
+  @@unique([categoryId, name])
+  @@index([categoryId])
+}
+
+model MediaTag {
+  id      String       @id @default(cuid())
+  mediaId String
+  media   Media        @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+  tagId   String
+  tag     AttributeTag @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([mediaId, tagId])
+  @@index([mediaId])
+  @@index([tagId])
 }

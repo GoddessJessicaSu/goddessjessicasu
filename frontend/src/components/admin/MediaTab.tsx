@@ -27,12 +27,27 @@ import EditableImageGrid, {
 import UploadProgressOverlay from "./UploadProgressOverlay";
 import { FileUploadItem } from "./useFileUpload";
 
+interface TagInfo {
+  id: string;
+  name: string;
+  categoryId: string;
+  categoryName: string;
+}
+
+interface CategoryWithTags {
+  id: string;
+  name: string;
+  tags: { id: string; name: string; categoryId: string; sortOrder: number }[];
+}
+
 interface EditState {
   title: string;
   description: string;
   priceTokens: string;
+  lengthMinutes: string;
   files: Array<{ id: string; objectKey: string; originalFilename: string | null; sortOrder: number }>;
   newStorjKey: string;
+  selectedTagIds: Set<string>;
 }
 
 interface AssetData {
@@ -157,6 +172,15 @@ function SortableMediaRow({
           {m.description}
         </p>
       )}
+      {m.tags?.length > 0 && (
+        <div className="flex flex-wrap gap-1 mt-1.5 ml-8">
+          {m.tags.map((mt: any) => (
+            <span key={mt.tag?.id || mt.id} className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary/60 border border-primary/20">
+              {mt.tag?.category?.name || ''}: {mt.tag?.name || ''}
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -170,9 +194,12 @@ export default function MediaTab() {
     title: "",
     description: "",
     priceTokens: "",
+    lengthMinutes: "",
     files: [],
     newStorjKey: "",
+    selectedTagIds: new Set(),
   });
+  const [allCategories, setAllCategories] = useState<CategoryWithTags[]>([]);
   const [saving, setSaving] = useState(false);
   const [reordering, setReordering] = useState(false);
 
@@ -198,6 +225,7 @@ export default function MediaTab() {
 
   useEffect(() => {
     loadMedia();
+    api.get("/admin/categories").then((res) => setAllCategories(res.data.categories)).catch(() => {});
   }, []);
 
   const loadMedia = () => {
@@ -268,12 +296,17 @@ export default function MediaTab() {
 
   const startEdit = async (m: any) => {
     setEditingId(m.id);
+    const existingTagIds = new Set<string>(
+      (m.tags || []).map((mt: any) => mt.tag?.id || mt.tagId)
+    );
     setEdit({
       title: m.title,
       description: m.description || "",
       priceTokens: String(m.priceTokens),
+      lengthMinutes: m.lengthMinutes != null ? String(m.lengthMinutes) : "",
       files: m.files || [],
       newStorjKey: "",
+      selectedTagIds: existingTagIds,
     });
     setDeletedAssetIds(new Set());
     setDeletingAssetIds(new Set());
@@ -300,7 +333,7 @@ export default function MediaTab() {
 
   const cancelEdit = () => {
     setEditingId(null);
-    setEdit({ title: "", description: "", priceTokens: "", files: [], newStorjKey: "" });
+    setEdit({ title: "", description: "", priceTokens: "", lengthMinutes: "", files: [], newStorjKey: "", selectedTagIds: new Set() });
     setEditImages([]);
     setDeletedAssetIds(new Set());
     setDeletingAssetIds(new Set());
@@ -383,10 +416,17 @@ export default function MediaTab() {
 
     try {
       // 1. Save metadata
+      const lengthVal = edit.lengthMinutes.trim() ? parseFloat(edit.lengthMinutes) : null;
       await api.put(`/admin/media/${id}`, {
         title: edit.title.trim(),
         description: edit.description.trim() || null,
         priceTokens: price,
+        lengthMinutes: lengthVal,
+      });
+
+      // 1b. Save tags
+      await api.put(`/admin/media/${id}/tags`, {
+        tagIds: Array.from(edit.selectedTagIds),
       });
 
       // 2. Upload new images if any (via backend for resize)
@@ -550,6 +590,65 @@ export default function MediaTab() {
                       className="px-3 py-2 bg-black border border-white/15 rounded text-white text-sm w-32 focus:border-primary/50 focus:outline-none transition-colors"
                     />
                   </div>
+
+                  {/* Length (minutes) */}
+                  <div>
+                    <label className="text-white/40 text-xs block mb-1">
+                      Length (minutes)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      value={edit.lengthMinutes}
+                      onChange={(e) =>
+                        setEdit({ ...edit, lengthMinutes: e.target.value })
+                      }
+                      placeholder="e.g. 12.5"
+                      className="px-3 py-2 bg-black border border-white/15 rounded text-white text-sm w-32 focus:border-primary/50 focus:outline-none transition-colors"
+                    />
+                  </div>
+
+                  {/* Tags */}
+                  {allCategories.length > 0 && (
+                    <div>
+                      <label className="text-white/40 text-xs block mb-2">
+                        Attributes
+                      </label>
+                      <div className="space-y-3">
+                        {allCategories.map((cat) => (
+                          <div key={cat.id}>
+                            <span className="text-white/50 text-xs font-medium block mb-1.5">
+                              {cat.name}
+                            </span>
+                            <div className="flex flex-wrap gap-1.5">
+                              {cat.tags.map((tag) => {
+                                const selected = edit.selectedTagIds.has(tag.id);
+                                return (
+                                  <button
+                                    key={tag.id}
+                                    type="button"
+                                    onClick={() => {
+                                      const next = new Set(edit.selectedTagIds);
+                                      if (selected) next.delete(tag.id);
+                                      else next.add(tag.id);
+                                      setEdit({ ...edit, selectedTagIds: next });
+                                    }}
+                                    className={`px-2.5 py-1 text-xs rounded transition ${
+                                      selected
+                                        ? "bg-primary/20 text-primary border border-primary/40"
+                                        : "bg-white/5 text-white/40 border border-white/10 hover:bg-white/10"
+                                    }`}
+                                  >
+                                    {tag.name}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Preview Images */}
                   <div>

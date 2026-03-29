@@ -5,6 +5,13 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import api from "@/lib/api";
 import { brand } from "@/lib/brand";
 
+interface MediaTag {
+  id: string;
+  name: string;
+  categoryId: string;
+  categoryName: string;
+}
+
 interface MediaItem {
   id: string;
   title: string;
@@ -12,9 +19,17 @@ interface MediaItem {
   priceTokens: number;
   mimeType: string;
   durationSecs: number | null;
+  lengthMinutes: number | null;
   thumbnailUrls: string[];
   previewUrl: string | null;
   purchased: boolean;
+  tags: MediaTag[];
+}
+
+interface FilterCategory {
+  id: string;
+  name: string;
+  tags: { id: string; name: string }[];
 }
 
 export default function Gallery() {
@@ -43,13 +58,26 @@ export default function Gallery() {
     current: number;
   } | null>(null);
 
+  // Filter state
+  const [filterCategories, setFilterCategories] = useState<FilterCategory[]>([]);
+  const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
+  const [minLength, setMinLength] = useState("");
+  const [maxLength, setMaxLength] = useState("");
+  const [filtersOpen, setFiltersOpen] = useState(false);
+
   const loadGallery = useCallback((cursor?: string) => {
     const isInitial = !cursor;
     if (isInitial) setLoading(true);
     else setLoadingMore(true);
 
+    const params: Record<string, string> = {};
+    if (cursor) params.cursor = cursor;
+    if (selectedTags.size > 0) params.tags = Array.from(selectedTags).join(",");
+    if (minLength) params.minLength = minLength;
+    if (maxLength) params.maxLength = maxLength;
+
     api
-      .get("/gallery", { params: cursor ? { cursor } : {} })
+      .get("/gallery", { params })
       .then((res) => {
         const { media: newItems, nextCursor: nc } = res.data;
         setMedia((prev) => isInitial ? newItems : [...prev, ...newItems]);
@@ -66,7 +94,7 @@ export default function Gallery() {
         if (isInitial) setLoading(false);
         else setLoadingMore(false);
       });
-  }, []);
+  }, [selectedTags, minLength, maxLength]);
 
   const fetchBalance = useCallback(() => {
     api.get("/auth/me").then((res) => setTokenBalance(res.data.user.tokenBalance)).catch(() => {});
@@ -78,8 +106,11 @@ export default function Gallery() {
       window.location.href = "/auth/magic-link";
       return;
     }
+    setMedia([]);
+    setNextCursor(null);
     loadGallery();
     fetchBalance();
+    api.get("/gallery/filters").then((res) => setFilterCategories(res.data.categories)).catch(() => {});
   }, [loadGallery, fetchBalance]);
 
   // Infinite scroll — load more when sentinel enters viewport
@@ -103,6 +134,23 @@ export default function Gallery() {
   const openLightbox = (urls: string[], index: number, title: string) => {
     setLightbox({ urls, index, title });
   };
+
+  const toggleTag = (tagId: string) => {
+    setSelectedTags((prev) => {
+      const next = new Set(prev);
+      if (next.has(tagId)) next.delete(tagId);
+      else next.add(tagId);
+      return next;
+    });
+  };
+
+  const clearFilters = () => {
+    setSelectedTags(new Set());
+    setMinLength("");
+    setMaxLength("");
+  };
+
+  const hasActiveFilters = selectedTags.size > 0 || minLength !== "" || maxLength !== "";
 
   const handlePurchaseSuccess = (mediaId: string, title: string, priceTokens: number) => {
     setSuccessModal({ title });
@@ -140,6 +188,112 @@ export default function Gallery() {
         )}
       </div>
 
+      {/* Filter Bar */}
+      {filterCategories.length > 0 && (
+        <div className="mb-8">
+          <button
+            onClick={() => setFiltersOpen(!filtersOpen)}
+            className="flex items-center gap-2 px-4 py-2.5 bg-vanta/60 border border-gold/20 rounded hover:border-primary/40 transition-all duration-300"
+          >
+            <svg className="w-4 h-4 text-primary/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z" />
+            </svg>
+            <span className="font-heading text-foreground/50 text-xs tracking-[0.15em] uppercase">
+              Filter{hasActiveFilters ? ` (active)` : ""}
+            </span>
+            <motion.svg
+              className="w-3 h-3 text-primary/40"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+              animate={{ rotate: filtersOpen ? 180 : 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+            </motion.svg>
+          </button>
+
+          <AnimatePresence>
+            {filtersOpen && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                className="overflow-hidden"
+              >
+                <div className="mt-3 p-5 bg-vanta/60 border border-gold/15 rounded-lg space-y-4">
+                  {/* Length filter */}
+                  <div>
+                    <span className="font-heading text-primary/40 text-[10px] tracking-[0.3em] uppercase block mb-2">
+                      Length (minutes)
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        step="0.5"
+                        value={minLength}
+                        onChange={(e) => setMinLength(e.target.value)}
+                        placeholder="Min"
+                        className="px-3 py-1.5 bg-black/50 border border-gold/15 rounded text-foreground/70 text-sm w-24 placeholder:text-foreground/20 focus:border-primary/40 focus:outline-none"
+                      />
+                      <span className="text-foreground/20 text-xs">to</span>
+                      <input
+                        type="number"
+                        step="0.5"
+                        value={maxLength}
+                        onChange={(e) => setMaxLength(e.target.value)}
+                        placeholder="Max"
+                        className="px-3 py-1.5 bg-black/50 border border-gold/15 rounded text-foreground/70 text-sm w-24 placeholder:text-foreground/20 focus:border-primary/40 focus:outline-none"
+                      />
+                      <span className="text-foreground/20 text-xs">min</span>
+                    </div>
+                  </div>
+
+                  {/* Category/tag filters */}
+                  {filterCategories.map((cat) => (
+                    <div key={cat.id}>
+                      <span className="font-heading text-primary/40 text-[10px] tracking-[0.3em] uppercase block mb-2">
+                        {cat.name}
+                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {cat.tags.map((tag) => {
+                          const active = selectedTags.has(tag.id);
+                          return (
+                            <button
+                              key={tag.id}
+                              onClick={() => toggleTag(tag.id)}
+                              className={`px-3 py-1.5 text-xs rounded transition-all duration-300 ${
+                                active
+                                  ? "bg-primary/20 text-primary border border-primary/40"
+                                  : "bg-white/5 text-foreground/40 border border-gold/10 hover:border-gold/30 hover:text-foreground/60"
+                              }`}
+                            >
+                              {tag.name}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Clear filters */}
+                  {hasActiveFilters && (
+                    <button
+                      onClick={clearFilters}
+                      className="text-foreground/30 hover:text-foreground/60 text-xs tracking-[0.1em] uppercase transition-colors duration-300"
+                    >
+                      Clear all filters
+                    </button>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      )}
+
       {loading ? (
         <div className="flex items-center justify-center py-32">
           <div className="font-heading text-primary/30 text-sm tracking-[0.3em] uppercase">
@@ -148,11 +302,23 @@ export default function Gallery() {
         </div>
       ) : error ? (
         <div className="text-accent text-center py-32">{error}</div>
-      ) : media.length === 0 ? (
+      ) : !loading && media.length === 0 && !hasActiveFilters ? (
         <div className="text-center py-32">
           <p className="font-heading text-foreground/30 text-sm tracking-[0.2em] uppercase">
             No content available yet
           </p>
+        </div>
+      ) : !loading && media.length === 0 && hasActiveFilters ? (
+        <div className="text-center py-32">
+          <p className="font-heading text-foreground/30 text-sm tracking-[0.2em] uppercase">
+            No masterpieces match your filters
+          </p>
+          <button
+            onClick={clearFilters}
+            className="mt-4 text-primary/50 hover:text-primary text-xs tracking-[0.15em] uppercase transition-colors duration-300"
+          >
+            Clear filters
+          </button>
         </div>
       ) : (
         <>
@@ -455,6 +621,23 @@ function MediaCard({
         <h3 className="font-heading text-foreground/90 text-sm tracking-[0.1em] uppercase mb-1">
           {item.title}
         </h3>
+        {item.lengthMinutes != null && (
+          <p className="text-foreground/25 text-[10px] tracking-[0.1em] mb-1">
+            {item.lengthMinutes} min
+          </p>
+        )}
+        {item.tags && item.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1 mb-2">
+            {item.tags.map((tag) => (
+              <span
+                key={tag.id}
+                className="text-[9px] px-1.5 py-0.5 rounded bg-primary/5 text-primary/40 border border-primary/10"
+              >
+                {tag.name}
+              </span>
+            ))}
+          </div>
+        )}
         {item.description && (
           <div className="mb-4">
             <p
