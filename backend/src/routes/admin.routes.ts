@@ -12,7 +12,11 @@ import {
   deleteObject,
 } from '../services/storage.service';
 import { asyncHandler } from '../middleware/async-handler';
+import { sendNewMasterpieceEmail } from '../services/mail.service';
+import { createServiceLogger } from '../logger';
 import crypto from 'crypto';
+
+const log = createServiceLogger('admin');
 
 function shortKey(filename: string): string {
   const id = crypto.randomBytes(4).toString('hex');
@@ -246,6 +250,56 @@ adminRoutes.put('/media-order', asyncHandler(async (req, res) => {
   );
 
   res.json({ message: 'Reordered' });
+}));
+
+// Send new masterpiece notification email to all users
+adminRoutes.post('/media/:id/notify', asyncHandler(async (req, res) => {
+  const media = await prisma.media.findUnique({
+    where: { id: req.params.id as string },
+    include: { assets: { orderBy: { sortOrder: 'asc' } } },
+  });
+  if (!media) {
+    res.status(404).json({ error: 'Media not found' });
+    return;
+  }
+  if (!media.isPublished) {
+    res.status(400).json({ error: 'Media must be published before sending notifications' });
+    return;
+  }
+
+  const users = await prisma.user.findMany({ select: { email: true } });
+  if (users.length === 0) {
+    res.status(400).json({ error: 'No registered users to notify' });
+    return;
+  }
+
+  // Generate presigned URLs for preview images (4-hour expiry)
+  const previewImageUrls = await Promise.all(
+    media.assets.map((a) => getPresignedUrl('previewImages', a.objectKey))
+  );
+
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+
+  let sent = 0;
+  let failed = 0;
+  for (const user of users) {
+    try {
+      await sendNewMasterpieceEmail(
+        user.email,
+        media.title,
+        media.description,
+        media.priceTokens,
+        previewImageUrls,
+        siteUrl,
+      );
+      sent++;
+    } catch (err) {
+      failed++;
+      log.error({ email: user.email, err }, 'Failed to send notification email');
+    }
+  }
+
+  res.json({ message: `Notification sent to ${sent} users${failed > 0 ? `, ${failed} failed` : ''}`, sent, failed });
 }));
 
 // Get single media with asset preview URLs

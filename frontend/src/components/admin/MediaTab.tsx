@@ -49,11 +49,13 @@ function SortableMediaRow({
   onEdit,
   onTogglePublish,
   onDelete,
+  onNotify,
 }: {
   m: any;
   onEdit: () => void;
   onTogglePublish: () => void;
   onDelete: () => void;
+  onNotify: () => void;
 }) {
   const {
     attributes,
@@ -134,6 +136,14 @@ function SortableMediaRow({
           >
             {m.isPublished ? "Unpublish" : "Publish"}
           </button>
+          {m.isPublished && (
+            <button
+              onClick={onNotify}
+              className="px-3 py-1 text-sm border border-primary/40 text-primary rounded hover:bg-primary/10 transition"
+            >
+              Notify All
+            </button>
+          )}
           <button
             onClick={onDelete}
             className="px-3 py-1 text-sm border border-red-900 text-red-400 rounded hover:bg-red-900/30 transition"
@@ -228,6 +238,21 @@ export default function MediaTab() {
       loadMedia();
     } catch (err: any) {
       alert(err.response?.data?.error || "Failed to update media");
+    }
+  };
+
+  const [notifying, setNotifying] = useState<string | null>(null);
+
+  const notifyUsers = async (id: string, title: string) => {
+    if (!confirm(`Send notification email for "${title}" to ALL registered users?`)) return;
+    setNotifying(id);
+    try {
+      const res = await api.post(`/admin/media/${id}/notify`);
+      alert(res.data.message);
+    } catch (err: any) {
+      alert(err.response?.data?.error || "Failed to send notifications");
+    } finally {
+      setNotifying(null);
     }
   };
 
@@ -645,6 +670,7 @@ export default function MediaTab() {
                   onEdit={() => startEdit(m)}
                   onTogglePublish={() => togglePublish(m.id, m.isPublished)}
                   onDelete={() => deleteMedia(m.id)}
+                  onNotify={() => notifyUsers(m.id, m.title)}
                 />
               )
             )}

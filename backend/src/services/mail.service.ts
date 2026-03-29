@@ -235,3 +235,114 @@ export async function sendPurchaseDownloadEmail(
     throw new Error(`Failed to send download email: ${error.message}`);
   }
 }
+
+export async function sendNewMasterpieceEmail(
+  email: string,
+  title: string,
+  description: string | null,
+  priceTokens: number,
+  previewImageUrls: string[],
+  siteUrl: string,
+) {
+  const bodyStyle =
+    "font-family: 'Georgia', 'Times New Roman', serif; font-size: 14px; color: rgba(245,240,232,0.55); line-height: 1.9;";
+  const accentStyle = "color: rgba(245,240,232,0.8);";
+  const tokenName = process.env.NEXT_PUBLIC_TOKEN_NAME || "GRACE";
+
+  const imagesHtml = previewImageUrls.length > 0
+    ? `<!-- Preview Images -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+      ${previewImageUrls.map((url, i) => `
+      <tr><td align="center" style="padding-bottom: ${i < previewImageUrls.length - 1 ? '12' : '28'}px;">
+        <img src="${url}" alt="Preview ${i + 1}" style="max-width: 100%; width: 400px; border-radius: 4px; border: 1px solid rgba(212,175,55,0.2);" />
+      </td></tr>`).join('')}
+    </table>`
+    : '';
+
+  const descriptionHtml = description
+    ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+      <tr><td style="${bodyStyle} padding-bottom: 24px; white-space: pre-line;">
+        ${escapeHtml(description).replace(/\n/g, '<br />')}
+      </td></tr>
+    </table>`
+    : '';
+
+  const html = emailWrapper(`
+    <!-- Heading -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+      <tr><td align="center" style="padding-bottom: 8px;">
+        <span style="font-family: 'Georgia', 'Times New Roman', serif; font-size: 10px; letter-spacing: 3px; text-transform: uppercase; color: rgba(212,175,55,0.4);">New Release</span>
+      </td></tr>
+      <tr><td align="center" style="padding-bottom: 24px;">
+        <span style="font-family: 'Georgia', 'Times New Roman', serif; font-size: 26px; color: ${primaryColor};">${escapeHtml(title)}</span>
+      </td></tr>
+      <tr><td align="center" style="padding-bottom: 32px;">
+        <div style="width: 40px; height: 1px; background-color: rgba(212,175,55,0.3);"></div>
+      </td></tr>
+    </table>
+
+    <!-- Body -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+      <tr><td style="${bodyStyle} padding-bottom: 6px;">Hey little one,</td></tr>
+      <tr><td style="${bodyStyle} padding-bottom: 20px;">I just released something new for you&hellip;</td></tr>
+      <tr><td style="${bodyStyle} ${accentStyle} padding-bottom: 28px;">
+        And I know you're going to love it. &#128536;
+      </td></tr>
+    </table>
+
+    ${descriptionHtml}
+
+    ${imagesHtml}
+
+    <!-- Price badge -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+      <tr><td align="center" style="padding-bottom: 28px;">
+        <span style="display: inline-block; padding: 8px 24px; border: 1px solid rgba(212,175,55,0.3); border-radius: 2px; font-family: 'Georgia', 'Times New Roman', serif; font-size: 13px; letter-spacing: 2px; color: ${primaryColor};">
+          ${priceTokens} ${tokenName}
+        </span>
+      </td></tr>
+    </table>
+
+    <!-- CTA Button -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+      <tr><td align="center" style="padding-bottom: 36px;">
+        <a href="${siteUrl}/gallery" style="display: inline-block; padding: 14px 48px; background-color: ${accentColor}; color: rgba(245,240,232,0.9); text-decoration: none; font-family: 'Georgia', 'Times New Roman', serif; font-size: 12px; letter-spacing: 3px; text-transform: uppercase; border-radius: 2px;">
+          View in Gallery
+        </a>
+      </td></tr>
+    </table>
+
+    <!-- Divider -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+      <tr><td align="center" style="padding-bottom: 24px;">
+        <div style="width: 100%; height: 1px; background-color: rgba(212,175,55,0.1);"></div>
+      </td></tr>
+    </table>
+
+    <!-- Closing copy -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+      <tr><td style="${bodyStyle} padding-bottom: 24px;">
+        Don&rsquo;t keep me waiting&hellip; &#128139;
+      </td></tr>
+    </table>
+
+    <!-- Signature -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+      <tr><td style="${bodyStyle} ${accentStyle}">
+        Jessica Su<br />
+        <span style="color: rgba(245,240,232,0.4);">Your dream goddess &#128096;</span>
+      </td></tr>
+    </table>
+  `);
+
+  const { error } = await resend.emails.send({
+    from: config.resend.fromEmail,
+    to: email,
+    subject: `New release: ${escapeHtml(title)} — ${siteName}`,
+    html,
+  });
+
+  if (error) {
+    throw new Error(`Failed to send new masterpiece email to ${email}: ${error.message}`);
+  }
+}
