@@ -165,7 +165,7 @@ authRoutes.get('/verify', authLimiter, asyncHandler(async (req, res) => {
     });
   }
 
-  const jwtToken = jwt.sign({ userId: user.id }, config.jwtSecret, { expiresIn: '24h' });
+  const jwtToken = jwt.sign({ userId: user.id }, config.jwtSecret, { expiresIn: '30d' });
 
   // If user has no username, treat as needing setup
   const needsUsername = !user.username;
@@ -222,7 +222,7 @@ authRoutes.get('/poll', asyncHandler(async (req, res) => {
     return;
   }
 
-  const jwtToken = jwt.sign({ userId: user.id }, config.jwtSecret, { expiresIn: '24h' });
+  const jwtToken = jwt.sign({ userId: user.id }, config.jwtSecret, { expiresIn: '30d' });
   const needsUsername = !user.username;
 
   res.json({
